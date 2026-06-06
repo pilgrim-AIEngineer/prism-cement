@@ -1,0 +1,283 @@
+// BuildBid — Prisma schema (Supabase / PostgreSQL)
+// Model: admin-brokered, double-blind material procurement marketplace.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Supabase: use the POOLED connection (port 6543, pgbouncer) for the app,
+  // and the DIRECT connection (port 5432) for migrations.
+  url       = env("DATABASE_URL")      // ...pooler...:6543/postgres?pgbouncer=true
+  directUrl = env("DIRECT_URL")        // ...direct...:5432/postgres
+}
+
+// ----------------------------- Enums -----------------------------
+
+enum Role {
+  ADMIN
+  BUILDER
+  VENDOR
+}
+
+enum UserStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum FormTemplateStatus {
+  ACTIVE
+  ARCHIVED // soft delete
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum RequirementStatus {
+  DRAFT
+  OPEN
+  CLOSED // admin manual close (no auto-close in MVP)
+  AWARDED
+  COMPLETED
+  REOPENED
+}
+
+enum BidStatus {
+  SUBMITTED
+  SELECTED
+  NOT_SELECTED
+  WITHDRAWN
+  COMPLETED
+}
+
+enum AwardStatus {
+  PENDING
+  BROKERED
+  COMPLETED
+  CANCELLED
+}
+
+// ----------------------------- Identity -----------------------------
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  phone     String     @unique
+  role      Role
+  status    UserStatus @default(PENDING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  builderProfile BuilderProfile?
+  vendorProfile  VendorProfile?
+
+  vendorCategories VendorCategory[] // vendor: many categories
+  projects         Project[] // builder: owns projects
+  bids             Bid[] // vendor: bids placed
+  awardsSelected   Award[]          @relation("AwardSelectedByAdmin")
+  notifications    Notification[]
+  auditLogs        AuditLog[]       @relation("AuditActor")
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model BuilderProfile {
+  userId     String    @id @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  company    String
+  email      String?
+  city       String?
+  verifiedAt DateTime? @map("verified_at")
+
+  @@map("builder_profiles")
+}
+
+model VendorProfile {
+  userId     String    @id @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  company    String
+  email      String?
+  gst        String?
+  pan        String?
+  city       String?
+  verifiedAt DateTime? @map("verified_at")
+
+  @@map("vendor_profiles")
+}
+
+// ----------------------------- Categories -----------------------------
+
+model Category {
+  id     String  @id @default(uuid()) @db.Uuid
+  name   String
+  slug   String  @unique
+  active Boolean @default(true)
+
+  vendorCategories VendorCategory[]
+  formTemplates    FormTemplate[]
+  requirements     Requirement[]
+
+  @@map("categories")
+}
+
+// Per-category approval for a vendor. Vendor only sees requirements where verified = true.
+model VendorCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  vendorId   String   @map("vendor_id") @db.Uuid
+  vendor     User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  verified   Boolean  @default(false)
+
+  @@unique([vendorId, categoryId])
+  @@index([categoryId, verified])
+  @@map("vendor_categories")
+}
+
+// ----------------------------- Dynamic Forms -----------------------------
+
+// Versioned. Editing creates a NEW version; delete = ARCHIVED (soft).
+model FormTemplate {
+  id         String             @id @default(uuid()) @db.Uuid
+  categoryId String             @map("category_id") @db.Uuid
+  category   Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  version    Int
+  schemaJson Json               @map("schema_json") // JSONB field definitions
+  status     FormTemplateStatus @default(ACTIVE)
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  requirements Requirement[] // requirements pinned to this version
+
+  @@unique([categoryId, version])
+  @@index([categoryId, status])
+  @@map("form_templates")
+}
+
+// ----------------------------- Projects & Requirements -----------------------------
+
+model Project {
+  id        String        @id @default(uuid()) @db.Uuid
+  builderId String        @map("builder_id") @db.Uuid
+  builder   User          @relation(fields: [builderId], references: [id], onDelete: Cascade)
+  name      String
+  city      String?
+  type      String?
+  status    ProjectStatus @default(DRAFT)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  requirements Requirement[]
+
+  @@index([builderId, status])
+  @@map("projects")
+}
+
+model Requirement {
+  id         String   @id @default(uuid()) @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  // Version pinning: link + immutable snapshot so later form edits never alter this requirement.
+  formTemplateId     String       @map("form_template_id") @db.Uuid
+  formTemplate       FormTemplate @relation(fields: [formTemplateId], references: [id])
+  schemaSnapshot     Json         @map("schema_snapshot") // frozen copy of schema at creation
+  formDataJson       Json         @map("form_data_json") // builder's answers
+
+  anonCode String            @unique @map("anon_code") // REQ-xxxx shown to vendors
+  cityZone String?           @map("city_zone") // generalized location only
+  status   RequirementStatus @default(DRAFT)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  bids   Bid[]
+  awards Award[]
+
+  @@index([status, categoryId])
+  @@index([projectId])
+  @@map("requirements")
+}
+
+// ----------------------------- Bids & Awards -----------------------------
+
+// Visible only to Admin (full) and the owning vendor. Never to the builder.
+// One active bid per vendor per requirement (vendor edits/withdraws while OPEN).
+model Bid {
+  id            String      @id @default(uuid()) @db.Uuid
+  requirementId String      @map("requirement_id") @db.Uuid
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vendorId      String      @map("vendor_id") @db.Uuid
+  vendor        User        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  amount        Decimal     @db.Decimal(14, 2)
+  fieldsJson    Json?       @map("fields_json") // optional structured bid extras
+  status        BidStatus   @default(SUBMITTED)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  award Award?
+
+  @@unique([requirementId, vendorId])
+  @@index([requirementId, status])
+  @@index([vendorId])
+  @@map("bids")
+}
+
+// Admin-driven selection (one or more vendors per requirement). Brokered offline.
+model Award {
+  id               String      @id @default(uuid()) @db.Uuid
+  requirementId    String      @map("requirement_id") @db.Uuid
+  requirement      Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  bidId            String      @unique @map("bid_id") @db.Uuid
+  bid              Bid         @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  selectedByAdminId String     @map("selected_by_admin_id") @db.Uuid
+  selectedByAdmin  User        @relation("AwardSelectedByAdmin", fields: [selectedByAdminId], references: [id])
+  status           AwardStatus @default(PENDING)
+  brokeredAt       DateTime?   @map("brokered_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@index([requirementId])
+  @@map("awards")
+}
+
+// ----------------------------- Ops -----------------------------
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // e.g. NEW_BID, AWARDED, COMPLETED, VERIFIED
+  payload   Json
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// Append-only. Never updated/deleted.
+model AuditLog {
+  id       String   @id @default(uuid()) @db.Uuid
+  actorId  String?  @map("actor_id") @db.Uuid
+  actor    User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action   String // VERIFY_USER, SUSPEND, CREATE_BID, AWARD, COMPLETE, REOPEN...
+  entity   String // table/entity name
+  entityId String   @map("entity_id")
+  before   Json?
+  after    Json?
+  ts       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}
