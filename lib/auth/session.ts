@@ -1,26 +1,57 @@
 import { cookies } from "next/headers";
-import { decodeSession, encodeSession, type SessionPayload } from "./token";
+import {
+  PENDING_AUTH_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  decodePendingAuth,
+  decodeSession,
+  encodePendingAuth,
+  encodeSession,
+  type PendingAuthPayload,
+  type SessionPayload,
+} from "./token";
 
-const COOKIE_NAME = "buildbid_session";
+export { PENDING_AUTH_COOKIE_NAME, SESSION_COOKIE_NAME };
+
+const PENDING_AUTH_MAX_AGE_SECONDS = 10 * 60;
+
+const baseCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+} as const;
 
 export async function createSession(payload: SessionPayload): Promise<void> {
   const store = await cookies();
-  store.set(COOKIE_NAME, encodeSession(payload), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-  });
+  store.set(SESSION_COOKIE_NAME, encodeSession(payload), baseCookieOptions);
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
-  return decodeSession(store.get(COOKIE_NAME)?.value);
+  return decodeSession(store.get(SESSION_COOKIE_NAME)?.value);
 }
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  store.delete(COOKIE_NAME);
+  store.delete(SESSION_COOKIE_NAME);
 }
 
-export type { SessionPayload };
+export async function createPendingAuth(payload: PendingAuthPayload): Promise<void> {
+  const store = await cookies();
+  store.set(PENDING_AUTH_COOKIE_NAME, encodePendingAuth(payload), {
+    ...baseCookieOptions,
+    maxAge: PENDING_AUTH_MAX_AGE_SECONDS,
+  });
+}
+
+export async function getPendingAuth(): Promise<PendingAuthPayload | null> {
+  const store = await cookies();
+  return decodePendingAuth(store.get(PENDING_AUTH_COOKIE_NAME)?.value);
+}
+
+export async function clearPendingAuth(): Promise<void> {
+  const store = await cookies();
+  store.delete(PENDING_AUTH_COOKIE_NAME);
+}
+
+export type { PendingAuthPayload, SessionPayload };

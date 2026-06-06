@@ -1,14 +1,27 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Role } from "@prisma/client";
 
-// Pure sign/verify for the session cookie payload — kept separate from
-// session.ts (which needs the Next.js request context) so it's testable
-// without a request. Lightweight custom JWT-ish token, per PRD §8 ("Auth.js
-// credentials provider or lightweight custom JWT").
+// Pure sign/verify for cookie payloads — kept separate from session.ts (which
+// needs the Next.js request context) so it's testable without a request.
+// Lightweight custom JWT-ish tokens, per PRD §8 ("Auth.js credentials provider
+// or lightweight custom JWT").
 export interface SessionPayload {
   userId: string;
   role: Role;
 }
+
+// Issued right after OTP verification for a phone with no account yet — proves
+// the phone passed verifyOtp so /onboarding can create the account without
+// re-running it. Short-lived; cleared once the real session is issued.
+export interface PendingAuthPayload {
+  phone: string;
+}
+
+// Cookie names live here (not session.ts) because this module has no
+// Next.js dependency — middleware reads them off NextRequest.cookies and
+// would otherwise have to import next/headers transitively just for a string.
+export const SESSION_COOKIE_NAME = "buildbid_session";
+export const PENDING_AUTH_COOKIE_NAME = "buildbid_pending_auth";
 
 const ROLES: readonly Role[] = ["ADMIN", "BUILDER", "VENDOR"];
 
@@ -20,12 +33,12 @@ function sign(value: string): string {
   return createHmac("sha256", secret()).update(value).digest("base64url");
 }
 
-export function encodeSession(payload: SessionPayload): string {
+function encode(payload: object): string {
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   return `${body}.${sign(body)}`;
 }
 
-export function decodeSession(token: string | undefined | null): SessionPayload | null {
+function decode<T>(token: string | undefined | null, isValid: (value: unknown) => value is T): T | null {
   if (!token) return null;
 
   const [body, signature] = token.split(".");
@@ -37,18 +50,44 @@ export function decodeSession(token: string | undefined | null): SessionPayload 
 
   try {
     const payload: unknown = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-    if (
-      typeof payload === "object" &&
-      payload !== null &&
-      "userId" in payload &&
-      "role" in payload &&
-      typeof (payload as { userId: unknown }).userId === "string" &&
-      ROLES.includes((payload as { role: Role }).role)
-    ) {
-      return payload as SessionPayload;
-    }
-    return null;
+    return isValid(payload) ? payload : null;
   } catch {
     return null;
   }
+}
+
+function isSessionPayload(value: unknown): value is SessionPayload {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "userId" in value &&
+    "role" in value &&
+    typeof (value as { userId: unknown }).userId === "string" &&
+    ROLES.includes((value as { role: Role }).role)
+  );
+}
+
+function isPendingAuthPayload(value: unknown): value is PendingAuthPayload {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "phone" in value &&
+    typeof (value as { phone: unknown }).phone === "string"
+  );
+}
+
+export function encodeSession(payload: SessionPayload): string {
+  return encode(payload);
+}
+
+export function decodeSession(token: string | undefined | null): SessionPayload | null {
+  return decode(token, isSessionPayload);
+}
+
+export function encodePendingAuth(payload: PendingAuthPayload): string {
+  return encode(payload);
+}
+
+export function decodePendingAuth(token: string | undefined | null): PendingAuthPayload | null {
+  return decode(token, isPendingAuthPayload);
 }
