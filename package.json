@@ -14,10 +14,10 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6",
     "next": "16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@prisma/client": "^6",
     "zod": "^4"
   },
   "devDependencies": {
@@ -25,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prisma": "^6",

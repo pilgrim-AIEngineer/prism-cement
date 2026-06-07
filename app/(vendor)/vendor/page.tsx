@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -7,13 +8,20 @@ export default async function VendorDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const user = await db.user.findUnique({ where: { id: session.userId }, select: { status: true } });
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      status: true,
+      vendorCategories: { select: { verified: true } },
+    },
+  });
   if (!user) redirect("/login");
 
   // Status is re-read from the DB on every render rather than cached in the
   // session — Admin can verify/suspend an account mid-session and the gate
   // must reflect that immediately (PRD §2 status gate).
   const isBlocked = user.status === "SUSPENDED" || user.status === "REJECTED";
+  const approvedCount = user.vendorCategories.filter((vc) => vc.verified).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,14 +29,32 @@ export default async function VendorDashboardPage() {
       <AccountStatusBanner status={user.status} />
 
       {!isBlocked && (
-        <section className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-          <p className="font-medium text-zinc-900 dark:text-zinc-100">Coming in later slices</p>
-          <p>
-            {user.status === "VERIFIED"
-              ? "Browse anonymized requirements in your approved categories and place bids here."
-              : "Browsing requirements and bidding unlock once Admin verifies your account and approves your categories."}
-          </p>
-        </section>
+        <>
+          <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Link
+              href="/vendor/categories"
+              className="flex flex-col gap-1.5 rounded-md border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            >
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">My Categories</span>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {approvedCount > 0
+                  ? `${approvedCount} approved categor${approvedCount === 1 ? "y" : "ies"} — request more or view status.`
+                  : user.status === "VERIFIED"
+                    ? "Select the categories you deal in to start receiving requirements."
+                    : "Request categories now — they activate once your account is verified."}
+              </p>
+            </Link>
+          </nav>
+
+          <section className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+            <p className="font-medium text-zinc-900 dark:text-zinc-100">Coming in later slices</p>
+            <p>
+              {user.status === "VERIFIED" && approvedCount > 0
+                ? "Browse anonymized requirements in your approved categories and place bids here."
+                : "Requirement browsing and bidding unlock once your account is verified and at least one category is approved."}
+            </p>
+          </section>
+        </>
       )}
     </div>
   );

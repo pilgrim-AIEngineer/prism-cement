@@ -17,8 +17,21 @@ Next.js (App Router) · TS strict · Tailwind · Prisma + Supabase · Zod · Ser
 
 ## Commands
 - npm run dev | typecheck | lint | test
-- npm run db:migrate  (uses DIRECT_URL — never the pooler)
+- npx prisma migrate dev --name <slug>   ← ALWAYS pass --name; the command blocks on stdin without it
 - npm run db:seed
+
+## Migration gotchas (discovered 2026-06-07)
+1. **`prisma.config.ts` skips `.env` loading** — dotenv must be imported manually.
+   `prisma.config.ts` already has `import "dotenv/config"` at the top; don't remove it.
+2. **Password contains `@` — must be URL-encoded as `%40` in `.env`** — an unescaped `@`
+   in the connection string is parsed as the host delimiter, producing a wrong hostname and
+   a silent P1001 "can't reach server" error.
+3. **`prisma migrate dev` is interactive** — it pauses waiting for a migration name on stdin
+   when run headlessly (CI, background tasks, etc.). Always pass `--name <slug>`.
+4. **`DIRECT_URL` (port 5432) may be unreachable on IPv4-only / VPN networks** — Supabase's
+   direct DB host is IPv6-only. The session-mode pooler (same host, port 5432) can also be
+   blocked by deep-packet-inspection VPNs. If `migrate dev` fails with P1001 on port 5432,
+   either disable the VPN or enable the Supabase "IPv4 Add-on" (Project Settings → Add-ons).
 
 ## Conventions
 - Mutations live in server/actions, grouped by domain. No business logic in components.
