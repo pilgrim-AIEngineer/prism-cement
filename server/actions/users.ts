@@ -10,8 +10,6 @@ import { uuidSchema } from "@/lib/validation/common";
 import { selectCategoriesSchema } from "@/lib/validation/users";
 import type { ActionResult } from "./auth";
 
-export type { ActionResult };
-
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };
 }

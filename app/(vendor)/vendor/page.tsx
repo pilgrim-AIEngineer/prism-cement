@@ -44,16 +44,19 @@ export default async function VendorDashboardPage() {
                     : "Request categories now — they activate once your account is verified."}
               </p>
             </Link>
-          </nav>
 
-          <section className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-            <p className="font-medium text-zinc-900 dark:text-zinc-100">Coming in later slices</p>
-            <p>
-              {user.status === "VERIFIED" && approvedCount > 0
-                ? "Browse anonymized requirements in your approved categories and place bids here."
-                : "Requirement browsing and bidding unlock once your account is verified and at least one category is approved."}
-            </p>
-          </section>
+            <Link
+              href="/vendor/feed"
+              className="flex flex-col gap-1.5 rounded-md border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            >
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">Browse Requirements</span>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {user.status === "VERIFIED" && approvedCount > 0
+                  ? "View open requirements in your approved categories and place bids."
+                  : "Unlocks once your account is verified and at least one category is approved."}
+              </p>
+            </Link>
+          </nav>
         </>
       )}
     </div>

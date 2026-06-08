@@ -7,9 +7,11 @@ export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [user, pendingCount] = await Promise.all([
+  const [user, pendingCount, formCategoryCount, openBidCount] = await Promise.all([
     db.user.findUnique({ where: { id: session.userId }, select: { phone: true } }),
     db.user.count({ where: { role: { not: "ADMIN" }, status: "PENDING" } }),
+    db.formTemplate.count({ where: { status: "ACTIVE" } }),
+    db.requirement.count({ where: { status: "OPEN" } }),
   ]);
   if (!user) redirect("/login");
 
@@ -33,12 +35,19 @@ export default async function AdminDashboardPage() {
           title="Verified Users"
           description="View all verified builders and vendors."
         />
+        <DashCard
+          href="/admin/forms"
+          title="Form Templates"
+          description="Build and manage dynamic material requirement forms per category."
+          badge={formCategoryCount > 0 ? `${formCategoryCount} active` : undefined}
+        />
+        <DashCard
+          href="/admin/requirements"
+          title="Bid Review"
+          description="View all bids for each requirement. Select vendors to connect and broker deals offline."
+          badge={openBidCount > 0 ? `${openBidCount} open` : undefined}
+        />
       </nav>
-
-      <section className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-        <p className="font-medium text-zinc-900 dark:text-zinc-100">Coming in later slices</p>
-        <p>Dynamic form templates, bid review, and award brokering.</p>
-      </section>
     </div>
   );
 }

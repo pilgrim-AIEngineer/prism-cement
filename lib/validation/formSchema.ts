@@ -45,3 +45,29 @@ export const formSchemaSnapshotSchema = z.object({
 export type FormFieldType = z.infer<typeof formFieldTypeSchema>;
 export type FormField = z.infer<typeof formFieldSchema>;
 export type FormSchemaSnapshot = z.infer<typeof formSchemaSnapshotSchema>;
+
+// Schema-of-schema integrity checks run after Zod parsing (which handles shape/type).
+// Returns the first error found, or null if valid.
+export function validateSchemaIntegrity(fields: FormField[]): string | null {
+  const seen = new Set<string>();
+  for (const field of fields) {
+    if (seen.has(field.key)) return `Duplicate field key: "${field.key}"`;
+    seen.add(field.key);
+  }
+  for (const field of fields) {
+    if (
+      (field.type === "select" || field.type === "multiselect") &&
+      (!field.options || field.options.length === 0)
+    ) {
+      return `Field "${field.label || field.key}" (${field.type}) must have at least one option`;
+    }
+  }
+  return null;
+}
+
+export const createFormTemplateInputSchema = z.object({
+  categoryId: z.string().uuid("Invalid category ID"),
+  fields: z.array(formFieldSchema).min(1, "A form must have at least one field"),
+});
+
+export type CreateFormTemplateInput = z.infer<typeof createFormTemplateInputSchema>;
