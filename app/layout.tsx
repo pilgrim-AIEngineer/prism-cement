@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BuildBid",
-  description: "Admin-brokered, double-blind building-material procurement marketplace",
+  title: "BuildCityBulk",
+  description: "India's trusted admin-brokered, double-blind building-material procurement platform",
 };
 
 export default function RootLayout({
