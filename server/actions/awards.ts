@@ -7,6 +7,14 @@ import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { selectBidsSchema, brokerAwardSchema, closeRequirementSchema } from "@/lib/validation/awards";
 import { adminRequirementBidView } from "@/lib/serializers/adminView";
+import {
+  notify,
+  requirementAwardedBuilderPayload,
+  bidSelectedVendorPayload,
+  bidNotSelectedVendorPayload,
+  awardCompletedVendorPayload,
+  requirementCompletedBuilderPayload,
+} from "@/lib/notifications";
 import type { AdminRequirementBidView } from "@/lib/serializers";
 import type { ActionResult } from "./auth";
 
@@ -119,6 +127,17 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
   // 4+5. Transaction with optimistic lock
   try {
     await db.$transaction(async (tx) => {
+      // Load requirement info before updating so we can use it in notifications.
+      const reqInfo = await tx.requirement.findUnique({
+        where: { id: parsed.data.requirementId },
+        select: {
+          anonCode: true,
+          project: { select: { builderId: true } },
+          category: { select: { name: true } },
+        },
+      });
+      if (!reqInfo) throw new Error("NOT_FOUND");
+
       // Optimistic lock: updateMany only succeeds when status is still OPEN.
       const reqUpdate = await tx.requirement.updateMany({
         where: { id: parsed.data.requirementId, status: "OPEN" },
@@ -201,8 +220,52 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
           after: { status: "NOT_SELECTED" },
         });
       }
+
+      // Notifications — must fire inside the same transaction.
+      const { anonCode, project: { builderId }, category: { name: categoryName } } = reqInfo!;
+
+      // Builder: "a vendor was selected; our team will reach out" — no vendor identity, no amounts.
+      await notify(
+        tx,
+        builderId,
+        "REQUIREMENT_AWARDED",
+        requirementAwardedBuilderPayload({ requirementId: parsed.data.requirementId, anonCode }),
+      );
+
+      // Load vendor IDs for selected bids so we can notify them.
+      const selectedVendors = await tx.bid.findMany({
+        where: { id: { in: parsed.data.bidIds } },
+        select: { vendorId: true },
+      });
+      for (const { vendorId } of selectedVendors) {
+        await notify(
+          tx,
+          vendorId,
+          "BID_SELECTED",
+          bidSelectedVendorPayload({ requirementId: parsed.data.requirementId, anonCode, category: categoryName }),
+        );
+      }
+
+      // Not-selected vendors: neutral notification — no builder/project identity.
+      for (const bid of toNotSelect) {
+        const notSelectedBid = await tx.bid.findUnique({
+          where: { id: bid.id },
+          select: { vendorId: true },
+        });
+        if (notSelectedBid) {
+          await notify(
+            tx,
+            notSelectedBid.vendorId,
+            "BID_NOT_SELECTED",
+            bidNotSelectedVendorPayload({ anonCode, category: categoryName }),
+          );
+        }
+      }
     });
   } catch (e) {
+    if (e instanceof Error && e.message === "NOT_FOUND") {
+      return fail("Requirement not found");
+    }
     if (e instanceof Error && e.message === "NOT_OPEN") {
       return fail("This requirement is not OPEN — cannot award again");
     }
@@ -245,6 +308,99 @@ export async function brokerAward(input: unknown): Promise<ActionResult> {
       before: { status: "PENDING" },
       after: { status: "BROKERED", brokeredAt: brokeredAt.toISOString() },
     });
+  });
+
+  return { ok: true, data: undefined };
+}
+
+// Admin marks a BROKERED Award as COMPLETED (offline deal done).
+// Also transitions the linked bid → COMPLETED and notifies both builder and vendor
+// with status-only payloads (no cross-party identity).
+export async function completeAward(input: unknown): Promise<ActionResult> {
+  // 1. Validate
+  const parsed = uuidSchema.safeParse(input);
+  if (!parsed.success) return fail("Invalid award ID");
+  const awardId = parsed.data;
+
+  // 2. RBAC (admin only)
+  const auth = await getAdminSession();
+  if (!auth.ok) return auth;
+
+  // 3. Load award + state guard
+  const award = await db.award.findUnique({
+    where: { id: awardId },
+    select: {
+      id: true,
+      status: true,
+      bid: {
+        select: {
+          id: true,
+          vendorId: true,
+          requirement: {
+            select: {
+              id: true,
+              anonCode: true,
+              project: { select: { builderId: true } },
+              category: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!award) return fail("Award not found");
+  if (award.status !== "BROKERED") return fail("Only BROKERED awards can be completed");
+
+  const {
+    bid: {
+      id: bidId,
+      vendorId,
+      requirement: {
+        id: requirementId,
+        anonCode,
+        project: { builderId },
+        category: { name: categoryName },
+      },
+    },
+  } = award;
+
+  // 4+5. Mutate + audit + notify
+  await db.$transaction(async (tx) => {
+    await tx.award.update({ where: { id: awardId }, data: { status: "COMPLETED" } });
+    await tx.bid.update({ where: { id: bidId }, data: { status: "COMPLETED" } });
+
+    await writeAudit(tx, {
+      actorId: auth.session.userId,
+      action: "COMPLETE_AWARD",
+      entity: "award",
+      entityId: awardId,
+      before: { status: "BROKERED" },
+      after: { status: "COMPLETED" },
+    });
+    await writeAudit(tx, {
+      actorId: auth.session.userId,
+      action: "COMPLETE_BID",
+      entity: "bid",
+      entityId: bidId,
+      before: { status: "SELECTED" },
+      after: { status: "COMPLETED" },
+    });
+
+    // Builder: status-only, no vendor identity.
+    await notify(
+      tx,
+      builderId,
+      "AWARD_COMPLETED",
+      requirementCompletedBuilderPayload({ requirementId, anonCode }),
+    );
+
+    // Vendor: status-only, no builder/project identity.
+    await notify(
+      tx,
+      vendorId,
+      "AWARD_COMPLETED",
+      awardCompletedVendorPayload({ anonCode, category: categoryName }),
+    );
   });
 
   return { ok: true, data: undefined };

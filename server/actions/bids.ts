@@ -7,6 +7,7 @@ import { requireRole, requireOwnership, RbacError } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { submitBidSchema } from "@/lib/validation/bids";
+import { notifyAdmins, newBidAdminPayload } from "@/lib/notifications";
 import type { VendorBidView } from "@/lib/serializers";
 import type { ActionResult } from "./auth";
 
@@ -56,7 +57,7 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
     select: { status: true, categoryId: true },
   });
   if (!req) return fail("Requirement not found");
-  if (req.status !== "OPEN") return fail("This requirement is not open for bids");
+  if (req.status !== "OPEN" && req.status !== "REOPENED") return fail("This requirement is not open for bids");
 
   const operational = await isVendorOperationalInCategory(auth.session.userId, req.categoryId);
   if (!operational) return fail("You are not approved to bid in this category");
@@ -104,7 +105,17 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
     return { ok: true, data: { id: existing.id } };
   }
 
-  // 4+5. Create new bid + audit
+  // Load vendor profile for admin notification (full detail is fine for admin).
+  const vendorProfile = await db.vendorProfile.findUnique({
+    where: { userId: auth.session.userId },
+    select: { name: true },
+  });
+  const reqForNotif = await db.requirement.findUnique({
+    where: { id: parsed.data.requirementId },
+    select: { anonCode: true },
+  });
+
+  // 4+5. Create new bid + audit + notify admins
   let bidId!: string;
   await db.$transaction(async (tx) => {
     const bid = await tx.bid.create({
@@ -129,6 +140,21 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
         status: "SUBMITTED",
       },
     });
+    if (reqForNotif) {
+      await notifyAdmins(
+        tx,
+        "NEW_BID",
+        newBidAdminPayload({
+          requirementId: parsed.data.requirementId,
+          anonCode: reqForNotif.anonCode,
+          bidId: bid.id,
+          vendorId: auth.session.userId,
+          vendorName: vendorProfile?.name ?? null,
+          vendorPhone: "", // phone is not loaded here for perf; admin sees it in the bid review page
+          amount: parsed.data.amount.toString(),
+        }),
+      );
+    }
   });
 
   return { ok: true, data: { id: bidId } };
@@ -162,7 +188,9 @@ export async function withdrawBid(bidId: string): Promise<ActionResult> {
   }
 
   if (bid.status !== "SUBMITTED") return fail("Only submitted bids can be withdrawn");
-  if (bid.requirement.status !== "OPEN") return fail("The requirement is no longer open");
+  if (bid.requirement.status !== "OPEN" && bid.requirement.status !== "REOPENED") {
+    return fail("The requirement is no longer open");
+  }
 
   // 4+5. Mutate + audit
   await db.$transaction(async (tx) => {

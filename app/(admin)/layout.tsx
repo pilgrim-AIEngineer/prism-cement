@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, roleHomePath } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 // Role-scoped shell for /(admin)/** — ADMIN-only session gate and admin nav land here.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             Admin
           </span>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-1">
+          <NotificationBell href="/admin/notifications" />
+          <SignOutButton />
+        </div>
       </header>
       <main className="flex flex-1 flex-col gap-6 p-6">{children}</main>
     </div>

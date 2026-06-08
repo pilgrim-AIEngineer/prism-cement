@@ -4,6 +4,9 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/Button";
 import { ActivateProjectButton } from "@/components/builder/ActivateProjectButton";
+import { CompleteProjectButton } from "@/components/builder/CompleteProjectButton";
+import { ReopenProjectButton } from "@/components/builder/ReopenProjectButton";
+import { ArchiveProjectButton } from "@/components/builder/ArchiveProjectButton";
 
 interface Props {
   params: Promise<{ projectId: string }>;
@@ -67,6 +70,11 @@ export default async function ProjectDetailPage({ params }: Props) {
             <Button variant="secondary">Edit</Button>
           </Link>
           {project.status === "DRAFT" && <ActivateProjectButton projectId={project.id} />}
+          {project.status === "ACTIVE" && <CompleteProjectButton projectId={project.id} />}
+          {project.status === "COMPLETED" && <ReopenProjectButton projectId={project.id} />}
+          {(project.status === "ACTIVE" || project.status === "COMPLETED") && (
+            <ArchiveProjectButton projectId={project.id} />
+          )}
         </div>
       </div>
 

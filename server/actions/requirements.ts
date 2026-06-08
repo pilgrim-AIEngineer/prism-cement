@@ -319,8 +319,9 @@ export async function getVendorFeed(): Promise<ActionResult<VendorRequirementVie
   const categoryIds = operationalCategories.map((vc) => vc.categoryId);
 
   // SECURITY: select clause never touches project, builder, or BuilderProfile — see [[anonymity-serializer]].
+  // REOPENED requirements are functionally open — vendors can still bid on them.
   const requirements = await db.requirement.findMany({
-    where: { status: "OPEN", categoryId: { in: categoryIds } },
+    where: { status: { in: ["OPEN", "REOPENED"] }, categoryId: { in: categoryIds } },
     select: {
       id: true,
       anonCode: true,

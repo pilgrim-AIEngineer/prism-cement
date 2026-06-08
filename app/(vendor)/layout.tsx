@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, roleHomePath } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 // Role-scoped shell for /(vendor)/** — session + role gate and vendor nav land
 // here. VERIFIED + per-category gates are rendered per-page once requirement
@@ -19,7 +20,10 @@ export default async function VendorLayout({ children }: { children: React.React
             Vendor
           </span>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-1">
+          <NotificationBell href="/vendor/notifications" />
+          <SignOutButton />
+        </div>
       </header>
       <main className="flex flex-1 flex-col gap-6 p-6">{children}</main>
     </div>

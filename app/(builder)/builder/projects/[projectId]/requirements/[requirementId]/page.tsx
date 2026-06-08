@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formSchemaSnapshotSchema } from "@/lib/validation/formSchema";
 import { PublishRequirementButton } from "@/components/builder/PublishRequirementButton";
+import { CompleteRequirementButton } from "@/components/builder/CompleteRequirementButton";
+import { ReopenRequirementButton } from "@/components/builder/ReopenRequirementButton";
 import { RequirementForm } from "@/components/builder/RequirementForm";
 
 interface Props {
@@ -86,7 +88,15 @@ export default async function RequirementDetailPage({ params }: Props) {
             form v{snapshot.version}
           </p>
         </div>
-        {isDraft && <PublishRequirementButton requirementId={req.id} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {isDraft && <PublishRequirementButton requirementId={req.id} />}
+          {(req.status === "AWARDED" || req.status === "CLOSED") && (
+            <CompleteRequirementButton requirementId={req.id} />
+          )}
+          {req.status === "COMPLETED" && (
+            <ReopenRequirementButton requirementId={req.id} />
+          )}
+        </div>
       </div>
 
       {/* Form — editable if DRAFT, read-only otherwise */}

@@ -8,6 +8,7 @@ import type { SessionPayload } from "@/lib/auth/token";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { selectCategoriesSchema } from "@/lib/validation/users";
+import { notify, userVerifiedPayload, categoryApprovedPayload } from "@/lib/notifications";
 import type { ActionResult } from "./auth";
 
 function fail(error: string): ActionResult<never> {
@@ -95,6 +96,11 @@ async function changeUserStatus(
         ? { status: targetStatus, verifiedAt: now.toISOString() }
         : { status: targetStatus },
     });
+
+    // Notify the user when their account becomes VERIFIED.
+    if (setsVerifiedAt) {
+      await notify(tx, userId, "USER_VERIFIED", userVerifiedPayload());
+    }
   });
 
   return { ok: true, data: undefined };
@@ -131,11 +137,11 @@ export async function approveVendorCategory(vendorCategoryId: string): Promise<A
   // 3. Load row (Admin overrides ownership)
   const vc = await db.vendorCategory.findUnique({
     where: { id: vendorCategoryId },
-    select: { verified: true, vendorId: true },
+    select: { verified: true, vendorId: true, category: { select: { name: true } } },
   });
   if (!vc) return fail("Vendor category not found");
 
-  // 4+5. Mutate + writeAudit
+  // 4+5. Mutate + writeAudit + notify vendor
   await db.$transaction(async (tx) => {
     await tx.vendorCategory.update({
       where: { id: vendorCategoryId },
@@ -149,6 +155,12 @@ export async function approveVendorCategory(vendorCategoryId: string): Promise<A
       before: { verified: vc.verified },
       after: { verified: true },
     });
+    await notify(
+      tx,
+      vc.vendorId,
+      "CATEGORY_APPROVED",
+      categoryApprovedPayload({ categoryName: vc.category.name }),
+    );
   });
 
   return { ok: true, data: undefined };

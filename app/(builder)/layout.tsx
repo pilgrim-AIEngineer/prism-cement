@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, roleHomePath } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 // Role-scoped shell for /(builder)/** — session + role gate and builder nav
 // land here. The VERIFIED status gate is rendered per-page (see app/(builder)/builder/page.tsx)
@@ -19,7 +20,10 @@ export default async function BuilderLayout({ children }: { children: React.Reac
             Builder
           </span>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-1">
+          <NotificationBell href="/builder/notifications" />
+          <SignOutButton />
+        </div>
       </header>
       <main className="flex flex-1 flex-col gap-6 p-6">{children}</main>
     </div>

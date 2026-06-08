@@ -7,7 +7,10 @@ import { formSchemaSnapshotSchema } from "@/lib/validation/formSchema";
 import { adminRequirementBidView } from "@/lib/serializers/adminView";
 import { AwardBidsForm } from "@/components/admin/AwardBidsForm";
 import { BrokerAwardButton } from "@/components/admin/BrokerAwardButton";
+import { CompleteAwardButton } from "@/components/admin/CompleteAwardButton";
 import { CloseRequirementButton } from "@/components/admin/CloseRequirementButton";
+import { CompleteRequirementButton } from "@/components/admin/CompleteRequirementButton";
+import { ReopenRequirementButton } from "@/components/admin/ReopenRequirementButton";
 import type { BidStatus, RequirementStatus, AwardStatus } from "@prisma/client";
 import type { BidOption } from "@/components/admin/AwardBidsForm";
 
@@ -270,6 +273,9 @@ export default async function AdminRequirementDetailPage({ params }: Props) {
                     {bid.award.status === "PENDING" && (
                       <BrokerAwardButton awardId={bid.award.id} />
                     )}
+                    {bid.award.status === "BROKERED" && (
+                      <CompleteAwardButton awardId={bid.award.id} />
+                    )}
                   </div>
                 )}
               </li>
@@ -302,6 +308,30 @@ export default async function AdminRequirementDetailPage({ params }: Props) {
             </p>
             <CloseRequirementButton requirementId={view.id} />
           </div>
+        </section>
+      )}
+
+      {(view.status === "AWARDED" || view.status === "CLOSED") && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            Complete requirement
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Mark as COMPLETED once the procurement is fully done.
+          </p>
+          <CompleteRequirementButton requirementId={view.id} />
+        </section>
+      )}
+
+      {view.status === "COMPLETED" && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            Reopen requirement
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Reopen to REOPENED — vendors can bid again and admin can re-award.
+          </p>
+          <ReopenRequirementButton requirementId={view.id} />
         </section>
       )}
     </div>
