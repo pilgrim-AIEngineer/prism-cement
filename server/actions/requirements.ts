@@ -11,6 +11,7 @@ import { formSchemaSnapshotSchema } from "@/lib/validation/formSchema";
 import { buildDynamicRequirementSchema } from "@/lib/validation/requirements";
 import { vendorRequirementView } from "@/lib/serializers";
 import type { VendorRequirementView } from "@/lib/serializers";
+import { SHOW_BID_COUNT } from "@/lib/config";
 import type { ActionResult } from "./auth";
 
 function fail(error: string): ActionResult<never> {
@@ -275,13 +276,21 @@ export async function getRequirement(requirementId: string) {
       updatedAt: true,
       category: { select: { name: true } },
       project: { select: { id: true, builderId: true, name: true } },
+      // Bid count is only surfaced when the feature flag is enabled — never amounts or identity.
+      ...(SHOW_BID_COUNT
+        ? { _count: { select: { bids: { where: { status: { not: "WITHDRAWN" } } } } } }
+        : {}),
     },
   });
 
   if (!req) return { ok: false as const, error: "Requirement not found" };
   if (req.project.builderId !== session.userId) return { ok: false as const, error: "Forbidden" };
 
-  return { ok: true as const, data: req };
+  const bidCount: number | null = SHOW_BID_COUNT
+    ? (req as { _count?: { bids: number } })._count?.bids ?? 0
+    : null;
+
+  return { ok: true as const, data: { ...req, bidCount } };
 }
 
 // ── Vendor read helpers ────────────────────────────────────────────────────

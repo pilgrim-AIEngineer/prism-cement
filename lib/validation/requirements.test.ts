@@ -105,13 +105,52 @@ describe("buildDynamicRequirementSchema", () => {
     expect(schema.safeParse({ features: ["X"] }).success).toBe(false); // not in options
   });
 
-  it("section_header and file fields produce no keys in schema", () => {
+  it("section_header fields produce no key; optional file fields allow absent key", () => {
     const schema = buildDynamicRequirementSchema([
       { key: "hdr", type: "section_header", label: "Details", required: false, visibleToVendor: false },
       { key: "doc", type: "file", label: "Document", required: false, visibleToVendor: false },
     ]);
-    // No required keys → empty object passes
+    // section_header has no key; file is optional — empty object passes
     expect(schema.safeParse({}).success).toBe(true);
+    // file field accepts a path string
+    expect(schema.safeParse({ doc: "requirements/abc123.jpg" }).success).toBe(true);
+  });
+
+  it("required file field fails when absent", () => {
+    const schema = buildDynamicRequirementSchema([
+      { key: "doc", type: "file", label: "Document", required: true, visibleToVendor: false },
+    ]);
+    expect(schema.safeParse({}).success).toBe(false);
+    expect(schema.safeParse({ doc: "requirements/abc.pdf" }).success).toBe(true);
+  });
+
+  it("vendor-visible text field rejects phone/email/URL (leak-pattern blocking)", () => {
+    const schema = buildDynamicRequirementSchema([
+      {
+        key: "notes",
+        type: "text",
+        label: "Notes",
+        required: false,
+        visibleToVendor: true,
+      },
+    ]);
+    expect(schema.safeParse({ notes: "Delivery at main gate only" }).success).toBe(true);
+    expect(schema.safeParse({ notes: "Call 9876543210 for access" }).success).toBe(false);
+    expect(schema.safeParse({ notes: "Email site@example.com" }).success).toBe(false);
+    expect(schema.safeParse({ notes: "See https://example.com" }).success).toBe(false);
+  });
+
+  it("non-visible text field allows contact info (only visible fields are blocked)", () => {
+    const schema = buildDynamicRequirementSchema([
+      {
+        key: "internal",
+        type: "text",
+        label: "Internal contact",
+        required: false,
+        visibleToVendor: false,
+      },
+    ]);
+    expect(schema.safeParse({ internal: "Call 9876543210" }).success).toBe(true);
   });
 
   it("text field enforces regex validation", () => {

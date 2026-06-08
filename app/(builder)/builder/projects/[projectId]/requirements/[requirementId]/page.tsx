@@ -7,6 +7,7 @@ import { PublishRequirementButton } from "@/components/builder/PublishRequiremen
 import { CompleteRequirementButton } from "@/components/builder/CompleteRequirementButton";
 import { ReopenRequirementButton } from "@/components/builder/ReopenRequirementButton";
 import { RequirementForm } from "@/components/builder/RequirementForm";
+import { SHOW_BID_COUNT } from "@/lib/config";
 
 interface Props {
   params: Promise<{ projectId: string; requirementId: string }>;
@@ -33,6 +34,10 @@ export default async function RequirementDetailPage({ params }: Props) {
       category: { select: { name: true } },
       project: { select: { id: true, builderId: true, name: true } },
       formTemplate: { select: { version: true } },
+      // Bid count surfaced only when the feature flag is on — no amounts/identity.
+      ...(SHOW_BID_COUNT
+        ? { _count: { select: { bids: { where: { status: { not: "WITHDRAWN" } } } } } }
+        : {}),
     },
   });
 
@@ -55,6 +60,9 @@ export default async function RequirementDetailPage({ params }: Props) {
   const snapshot = snapshotResult.data;
   const formData = (req.formDataJson ?? {}) as Record<string, unknown>;
   const isDraft = req.status === "DRAFT";
+  const bidCount: number | null = SHOW_BID_COUNT
+    ? (req as { _count?: { bids: number } })._count?.bids ?? 0
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,6 +95,11 @@ export default async function RequirementDetailPage({ params }: Props) {
             {" · "}
             form v{snapshot.version}
           </p>
+          {bidCount !== null && bidCount > 0 && (
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              {bidCount} bid{bidCount !== 1 ? "s" : ""} received
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isDraft && <PublishRequirementButton requirementId={req.id} />}

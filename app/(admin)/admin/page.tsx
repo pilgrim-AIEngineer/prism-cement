@@ -7,11 +7,12 @@ export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [user, pendingCount, formCategoryCount, openBidCount] = await Promise.all([
+  const [user, pendingCount, formCategoryCount, openBidCount, auditCount] = await Promise.all([
     db.user.findUnique({ where: { id: session.userId }, select: { phone: true } }),
     db.user.count({ where: { role: { not: "ADMIN" }, status: "PENDING" } }),
     db.formTemplate.count({ where: { status: "ACTIVE" } }),
     db.requirement.count({ where: { status: "OPEN" } }),
+    db.auditLog.count(),
   ]);
   if (!user) redirect("/login");
 
@@ -46,6 +47,12 @@ export default async function AdminDashboardPage() {
           title="Bid Review"
           description="View all bids for each requirement. Select vendors to connect and broker deals offline."
           badge={openBidCount > 0 ? `${openBidCount} open` : undefined}
+        />
+        <DashCard
+          href="/admin/audit"
+          title="Audit Log"
+          description="Browse the append-only audit trail of all verifications, bids, awards, and state changes."
+          badge={auditCount > 0 ? `${auditCount} entries` : undefined}
         />
       </nav>
     </div>

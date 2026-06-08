@@ -1,10 +1,22 @@
 import { z } from "zod";
-import { uuidSchema, moneyAmountSchema } from "./common";
+import { uuidSchema, moneyAmountSchema, containsContactInfo } from "./common";
+
+// All string values in fieldsJson are vendor-visible — block identity leakage.
+const safeFieldsJson = z
+  .record(z.string(), z.unknown())
+  .refine(
+    (obj) =>
+      Object.values(obj).every(
+        (v) => typeof v !== "string" || !containsContactInfo(v),
+      ),
+    "Remove phone numbers, emails, or links from bid fields",
+  )
+  .optional();
 
 export const submitBidSchema = z.object({
   requirementId: uuidSchema,
   amount: moneyAmountSchema,
-  fieldsJson: z.record(z.string(), z.unknown()).optional(),
+  fieldsJson: safeFieldsJson,
 });
 
 export const withdrawBidSchema = z.object({

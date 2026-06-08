@@ -63,6 +63,42 @@ describe("submitBidSchema", () => {
       expect(result.data.fieldsJson).toBeUndefined();
     }
   });
+
+  it("rejects fieldsJson with a phone number in a string value", () => {
+    const result = submitBidSchema.safeParse({
+      requirementId: VALID_UUID,
+      amount: "500",
+      fieldsJson: { note: "Call 9876543210 to confirm" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects fieldsJson with an email in a string value", () => {
+    const result = submitBidSchema.safeParse({
+      requirementId: VALID_UUID,
+      amount: "500",
+      fieldsJson: { contact: "reach@example.com" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects fieldsJson with a URL in a string value", () => {
+    const result = submitBidSchema.safeParse({
+      requirementId: VALID_UUID,
+      amount: "500",
+      fieldsJson: { catalog: "https://example.com/products" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts fieldsJson with non-string values that are numbers or booleans", () => {
+    const result = submitBidSchema.safeParse({
+      requirementId: VALID_UUID,
+      amount: "500",
+      fieldsJson: { lead_days: 7, gst_included: true },
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("withdrawBidSchema", () => {

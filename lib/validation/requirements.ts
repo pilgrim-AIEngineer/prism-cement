@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { FormField } from "./formSchema";
+import { containsContactInfo } from "./common";
 
 // Builds a Zod schema from a snapshot's field array for server-side validation
 // of a builder's requirement form answers. Always call with the PINNED
@@ -13,7 +14,17 @@ export function buildDynamicRequirementSchema(
   const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const field of fields) {
-    if (field.type === "section_header" || field.type === "file") continue;
+    if (field.type === "section_header") continue;
+
+    if (field.type === "file") {
+      // File fields store the storage path returned by /api/uploads.
+      // Non-visible files are never included in vendor payloads — the serializer filters them.
+      const fileSchema = z.string().trim();
+      shape[field.key] = field.required
+        ? fileSchema.min(1, `${field.label} is required`)
+        : fileSchema.optional();
+      continue;
+    }
 
     let s: z.ZodTypeAny;
 
@@ -28,6 +39,14 @@ export function buildDynamicRequirementSchema(
         }
         if (field.validation?.max !== undefined) {
           ts = ts.max(field.validation.max, `${field.label}: too long`);
+        }
+        if (field.visibleToVendor) {
+          // Vendor-visible free text must not carry identity — reject phone/email/URL.
+          // See [[anonymity-serializer]] and lib/validation/common.ts#containsContactInfo.
+          ts = ts.refine(
+            (v) => !containsContactInfo(v),
+            `${field.label}: remove phone numbers, emails, or links`,
+          );
         }
         s = field.required ? ts.min(1, `${field.label} is required`) : ts.optional();
         break;

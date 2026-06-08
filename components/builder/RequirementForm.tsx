@@ -109,14 +109,12 @@ function DynamicField({
   }
 
   if (field.type === "file") {
-    // File upload not implemented in MVP — show a placeholder
     return (
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          {field.label}
-        </label>
-        <p className="text-xs text-zinc-400">File uploads coming in a later version.</p>
-      </div>
+      <FileUploadField
+        field={field}
+        value={value}
+        onChange={onChange}
+      />
     );
   }
 
@@ -259,4 +257,65 @@ function FieldInput({
     default:
       return null;
   }
+}
+
+function FileUploadField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const id = `field-${field.key}`;
+  const storedPath = typeof value === "string" ? value : null;
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        setUploadError(json.error ?? "Upload failed");
+        return;
+      }
+      const json = (await res.json()) as { storagePath: string };
+      onChange(json.storagePath);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        {field.label}
+        {field.required && <span className="ml-0.5 text-red-500">*</span>}
+      </label>
+      {storedPath && (
+        <p className="text-xs text-green-700 dark:text-green-400">
+          File uploaded. Replace by selecting a new file.
+        </p>
+      )}
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        onChange={handleFileChange}
+        disabled={uploading}
+        className="text-sm text-zinc-600 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 disabled:opacity-50 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-300"
+      />
+      {uploading && <p className="text-xs text-zinc-500">Uploading…</p>}
+      {uploadError && <p className="text-xs text-red-600 dark:text-red-400">{uploadError}</p>}
+      {field.helpText && <p className="text-xs text-zinc-500 dark:text-zinc-400">{field.helpText}</p>}
+    </div>
+  );
 }
