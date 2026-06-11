@@ -16,7 +16,7 @@ import {
   requirementCompletedBuilderPayload,
 } from "@/lib/notifications";
 import type { AdminRequirementBidView } from "@/lib/serializers";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };

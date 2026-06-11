@@ -12,7 +12,7 @@ import { buildDynamicRequirementSchema } from "@/lib/validation/requirements";
 import { vendorRequirementView } from "@/lib/serializers";
 import type { VendorRequirementView } from "@/lib/serializers";
 import { SHOW_BID_COUNT } from "@/lib/config";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };

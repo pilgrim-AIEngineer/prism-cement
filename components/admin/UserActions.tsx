@@ -6,7 +6,7 @@ import type { UserStatus } from "@prisma/client";
 import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/Banner";
 import { verifyUser, rejectUser, suspendUser, reinstateUser } from "@/server/actions/users";
-import type { ActionResult } from "@/server/actions/auth";
+import type { ActionResult } from "@/server/types";
 
 interface Props {
   userId: string;

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/uploads";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 const storagePathSchema = z.string().trim().min(1).max(500);
 

@@ -9,7 +9,7 @@ import { uuidSchema } from "@/lib/validation/common";
 import { submitBidSchema } from "@/lib/validation/bids";
 import { notifyAdmins, newBidAdminPayload } from "@/lib/notifications";
 import type { VendorBidView } from "@/lib/serializers";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };

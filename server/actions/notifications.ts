@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation/common";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 export interface NotificationItem {
   id: string;

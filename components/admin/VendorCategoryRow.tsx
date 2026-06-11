@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { approveVendorCategory, revokeVendorCategory } from "@/server/actions/users";
-import type { ActionResult } from "@/server/actions/auth";
+import type { ActionResult } from "@/server/types";
 
 interface Props {
   vendorCategoryId: string;

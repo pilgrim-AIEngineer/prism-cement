@@ -12,6 +12,8 @@ import {
 } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { completeOnboardingSchema, loginSchema, type CompleteOnboardingInput, type LoginInput } from "@/lib/validation/auth";
+import type { ActionResult } from "@/server/types";
+export type { ActionResult } from "@/server/types";
 
 // Authentication bootstrap — deliberately NOT the standard domain-mutation
 // pipeline (Zod -> RBAC -> ownership -> mutate -> audit) from
@@ -25,7 +27,7 @@ import { completeOnboardingSchema, loginSchema, type CompleteOnboardingInput, ty
 // Account creation still ends in writeAudit() (PRD: "writeAudit() on user +
 // profile creation").
 
-export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
+// ActionResult is now defined in @/server/types and re-exported above.
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };

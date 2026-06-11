@@ -10,7 +10,7 @@ import {
   requirementAwardedBuilderPayload,
   requirementCompletedBuilderPayload,
 } from "@/lib/notifications";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };

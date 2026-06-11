@@ -6,7 +6,7 @@ import { getSession } from "@/lib/auth";
 import { requireRole, requireOwnership, RbacError } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 const projectInputSchema = z.object({
   name: z.string().trim().min(1, "Project name is required").max(200),

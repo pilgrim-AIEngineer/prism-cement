@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/Banner";
 import { selectVendorCategories } from "@/server/actions/users";
-import type { ActionResult } from "@/server/actions/auth";
+import type { ActionResult } from "@/server/types";
 
 interface Category {
   id: string;

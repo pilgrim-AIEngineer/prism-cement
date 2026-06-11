@@ -9,7 +9,7 @@ import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { selectCategoriesSchema } from "@/lib/validation/users";
 import { notify, userVerifiedPayload, categoryApprovedPayload } from "@/lib/notifications";
-import type { ActionResult } from "./auth";
+import type { ActionResult } from "@/server/types";
 
 function fail(error: string): ActionResult<never> {
   return { ok: false, error };
