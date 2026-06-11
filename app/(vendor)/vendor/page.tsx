@@ -12,53 +12,146 @@ export default async function VendorDashboardPage() {
     where: { id: session.userId },
     select: {
       status: true,
-      vendorCategories: { select: { verified: true } },
+      vendorCategories: {
+        where: { verified: true },
+        select: { categoryId: true },
+      },
     },
   });
   if (!user) redirect("/login");
 
-  // Status is re-read from the DB on every render rather than cached in the
-  // session — Admin can verify/suspend an account mid-session and the gate
-  // must reflect that immediately (PRD §2 status gate).
+  const approvedCategoryIds = user.vendorCategories.map((vc) => vc.categoryId);
+  const approvedCount = approvedCategoryIds.length;
+  const isOperational = user.status === "VERIFIED" && approvedCount > 0;
   const isBlocked = user.status === "SUSPENDED" || user.status === "REJECTED";
-  const approvedCount = user.vendorCategories.filter((vc) => vc.verified).length;
+
+  const [openReqsCount, activeBidsCount] = isOperational
+    ? await Promise.all([
+        db.requirement.count({
+          where: { status: { in: ["OPEN", "REOPENED"] }, categoryId: { in: approvedCategoryIds } },
+        }),
+        db.bid.count({ where: { vendorId: session.userId, status: "SUBMITTED" } }),
+      ])
+    : [0, 0];
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold tracking-tight">Vendor dashboard</h1>
+    <div className="flex flex-col gap-8 p-6 lg:p-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Dashboard</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Your vendor overview</p>
+      </div>
+
       <AccountStatusBanner status={user.status} />
 
       {!isBlocked && (
         <>
-          <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Link
-              href="/vendor/categories"
-              className="flex flex-col gap-1.5 rounded-md border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            >
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">My Categories</span>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {approvedCount > 0
-                  ? `${approvedCount} approved categor${approvedCount === 1 ? "y" : "ies"} — request more or view status.`
-                  : user.status === "VERIFIED"
-                    ? "Select the categories you deal in to start receiving requirements."
-                    : "Request categories now — they activate once your account is verified."}
-              </p>
-            </Link>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Approved Categories"
+              value={approvedCount}
+              hint={approvedCount === 0 ? "None yet — request from Categories" : undefined}
+            />
+            <StatCard
+              label="Open Requirements"
+              value={openReqsCount}
+              hint={!isOperational ? "Unlocks when verified + approved" : undefined}
+            />
+            <StatCard
+              label="Active Bids"
+              value={activeBidsCount}
+              hint={!isOperational ? "Unlocks when verified + approved" : undefined}
+            />
+          </div>
 
-            <Link
-              href="/vendor/feed"
-              className="flex flex-col gap-1.5 rounded-md border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            >
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">Browse Requirements</span>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {user.status === "VERIFIED" && approvedCount > 0
-                  ? "View open requirements in your approved categories and place bids."
-                  : "Unlocks once your account is verified and at least one category is approved."}
-              </p>
-            </Link>
-          </nav>
+          <section>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Quick actions
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <QuickLink
+                href="/vendor/feed"
+                title="Browse Requirements"
+                description={
+                  isOperational
+                    ? `${openReqsCount} open in your categories`
+                    : "Verify account + get category approval first"
+                }
+              />
+              <QuickLink
+                href="/vendor/bids"
+                title="My Bids"
+                description={
+                  activeBidsCount > 0
+                    ? `${activeBidsCount} active bid${activeBidsCount === 1 ? "" : "s"}`
+                    : "Track all your bids here"
+                }
+              />
+              <QuickLink
+                href="/vendor/categories"
+                title="Categories"
+                description={
+                  approvedCount > 0
+                    ? `${approvedCount} approved — view or request more`
+                    : "Request categories to start bidding"
+                }
+              />
+              <QuickLink
+                href="/vendor/notifications"
+                title="Notifications"
+                description="Stay updated on your bids and account status"
+              />
+            </div>
+          </section>
         </>
       )}
     </div>
+  );
+}
+
+function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{value}</p>
+      {hint && <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{hint}</p>}
+    </div>
+  );
+}
+
+function QuickLink({
+  href,
+  title,
+  description,
+}: {
+  href: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-brand-border hover:bg-brand-bg dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-zinc-900 transition-colors group-hover:text-brand-accent dark:text-zinc-100">
+          {title}
+        </p>
+        <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{description}</p>
+      </div>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="ml-3 h-4 w-4 shrink-0 text-zinc-300 transition-colors group-hover:text-brand-accent dark:text-zinc-600"
+      >
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    </Link>
   );
 }

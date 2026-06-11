@@ -13,19 +13,33 @@ export default async function BuilderNotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
+    <div className="flex flex-col gap-6 p-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Notifications
-          {unreadCount > 0 && (
-            <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
-              {unreadCount}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+            Notifications
+          </h1>
+          <p className="mt-0.5 text-sm text-stone-500 dark:text-zinc-400">
+            {unreadCount > 0
+              ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+              : "All caught up"}
+          </p>
+        </div>
+        {unreadCount > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent text-xs font-bold text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
             </span>
-          )}
-        </h1>
-        {unreadCount > 0 && <MarkAllReadButton />}
+            <MarkAllReadButton />
+          </div>
+        )}
       </div>
-      <NotificationsList notifications={notifications} />
+
+      <div className="max-w-2xl">
+        <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <NotificationsList notifications={notifications} />
+        </div>
+      </div>
     </div>
   );
 }

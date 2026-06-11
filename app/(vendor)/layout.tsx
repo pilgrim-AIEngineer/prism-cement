@@ -1,31 +1,29 @@
 import { redirect } from "next/navigation";
 import { getSession, roleHomePath } from "@/lib/auth";
-import { SignOutButton } from "@/components/auth/SignOutButton";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { db } from "@/lib/db";
+import { getUnreadCount } from "@/server/actions/notifications";
+import { VendorShell } from "@/components/vendor/VendorShell";
 
-// Role-scoped shell for /(vendor)/** — session + role gate and vendor nav land
-// here. VERIFIED + per-category gates are rendered per-page once requirement
-// browsing exists; PENDING vendors still reach a (read-only) dashboard — PRD §2.
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.role !== "VENDOR") redirect(roleHomePath(session.role));
 
+  const [user, vendorProfile, unreadNotifCount] = await Promise.all([
+    db.user.findUnique({ where: { id: session.userId }, select: { phone: true } }),
+    db.vendorProfile.findUnique({ where: { userId: session.userId }, select: { name: true } }),
+    getUnreadCount(),
+  ]);
+
+  if (!user) redirect("/login");
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-semibold tracking-tight">BuildBid</span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
-            Vendor
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <NotificationBell href="/vendor/notifications" />
-          <SignOutButton />
-        </div>
-      </header>
-      <main className="flex flex-1 flex-col gap-6 p-6">{children}</main>
-    </div>
+    <VendorShell
+      vendorName={vendorProfile?.name ?? null}
+      vendorPhone={user.phone}
+      unreadNotifCount={unreadNotifCount}
+    >
+      {children}
+    </VendorShell>
   );
 }

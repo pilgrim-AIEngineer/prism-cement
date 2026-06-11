@@ -37,9 +37,21 @@ export default async function VendorCategoriesPage() {
   const selectedIds = new Set(vendorCategories.map((vc) => vc.categoryId));
   const unselected = allCategories.filter((c) => !selectedIds.has(c.id));
 
+  const approvedCount = vendorCategories.filter((vc) => vc.verified).length;
+  const pendingCount = vendorCategories.filter((vc) => !vc.verified).length;
+
   return (
-    <div className="flex max-w-xl flex-col gap-6">
-      <h2 className="text-lg font-semibold tracking-tight">My Categories</h2>
+    <div className="flex flex-col gap-6 p-6 lg:p-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+          Categories
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          {approvedCount > 0
+            ? `${approvedCount} approved · ${pendingCount} pending`
+            : "Request categories to start receiving and bidding on requirements"}
+        </p>
+      </div>
 
       <AccountStatusBanner status={user.status} />
 
@@ -48,7 +60,7 @@ export default async function VendorCategoriesPage() {
           <Banner tone="info" title="How categories work">
             Request the categories you deal in. You can browse and bid on open requirements in
             categories where your account is <strong>Verified</strong> and the category is{" "}
-            <strong>Approved</strong> by Admin — both conditions are required.
+            <strong>Approved</strong> by Admin — both conditions must hold.
           </Banner>
           <CategorySelector unselected={unselected} selected={vendorCategories} />
         </>

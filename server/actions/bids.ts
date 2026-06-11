@@ -208,6 +208,65 @@ export async function withdrawBid(bidId: string): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+export interface VendorBidListItem {
+  id: string;
+  amount: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  requirement: {
+    id: string;
+    anonCode: string;
+    cityZone: string | null;
+    status: string;
+    category: { id: string; name: string };
+  };
+}
+
+export async function getVendorBids(): Promise<ActionResult<VendorBidListItem[]>> {
+  const session = await getSession();
+  if (!session || session.role !== "VENDOR") return { ok: false, error: "Unauthorized" };
+
+  const bids = await db.bid.findMany({
+    where: { vendorId: session.userId },
+    select: {
+      id: true,
+      amount: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      requirement: {
+        select: {
+          id: true,
+          anonCode: true,
+          cityZone: true,
+          status: true,
+          category: { select: { id: true, name: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    ok: true,
+    data: bids.map((bid) => ({
+      id: bid.id,
+      amount: bid.amount.toString(),
+      status: bid.status,
+      createdAt: bid.createdAt,
+      updatedAt: bid.updatedAt,
+      requirement: {
+        id: bid.requirement.id,
+        anonCode: bid.requirement.anonCode,
+        cityZone: bid.requirement.cityZone,
+        status: bid.requirement.status,
+        category: bid.requirement.category,
+      },
+    })),
+  };
+}
+
 export async function getVendorBid(requirementId: string): Promise<ActionResult<VendorBidView | null>> {
   // 1. Validate
   const parsed = uuidSchema.safeParse(requirementId);

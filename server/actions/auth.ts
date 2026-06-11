@@ -163,5 +163,5 @@ export async function completeOnboarding(
 
 export async function logout(): Promise<ActionResult<{ redirectTo: string }>> {
   await destroySession();
-  return { ok: true, data: { redirectTo: "/login" } };
+  return { ok: true, data: { redirectTo: "/" } };
 }

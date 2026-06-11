@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/Banner";
 import { selectVendorCategories } from "@/server/actions/users";
 import type { ActionResult } from "@/server/types";
@@ -51,55 +50,58 @@ export function CategorySelector({ unselected, selected }: Props) {
 
       {selected.length > 0 && (
         <section>
-          <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
             Your categories
-          </h3>
-          <ul className="flex flex-col gap-2">
+          </p>
+          <div className="flex flex-col gap-2">
             {selected.map((vc) => (
-              <li
+              <div
                 key={vc.id}
-                className="flex items-center justify-between rounded-md border border-zinc-200 px-4 py-3 dark:border-zinc-800"
+                className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-3.5 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   {vc.category.name}
                 </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    vc.verified
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                  }`}
-                >
-                  {vc.verified ? "Approved" : "Pending approval"}
-                </span>
-              </li>
+                {vc.verified ? (
+                  <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Approved
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    Pending approval
+                  </span>
+                )}
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
       {unselected.length > 0 && (
         <section>
-          <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            {selected.length > 0 ? "Request more categories" : "Select your categories"}
-          </h3>
-          <ul className="flex flex-col gap-2">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+            {selected.length > 0 ? "Request more categories" : "Available categories"}
+          </p>
+          <div className="flex flex-col gap-2">
             {unselected.map((category) => (
-              <li
+              <div
                 key={category.id}
-                className="flex items-center justify-between rounded-md border border-dashed border-zinc-300 px-4 py-3 dark:border-zinc-700"
+                className="flex items-center justify-between rounded-xl border border-dashed border-zinc-200 bg-white px-5 py-3.5 dark:border-zinc-700 dark:bg-zinc-900"
               >
-                <span className="text-sm text-zinc-900 dark:text-zinc-100">{category.name}</span>
-                <Button
-                  variant="secondary"
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{category.name}</span>
+                <button
                   disabled={isPending}
                   onClick={() => requestCategory(category.id)}
+                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-brand-accent/30 hover:bg-brand-bg hover:text-brand-accent disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600"
                 >
                   Request
-                </Button>
-              </li>
+                </button>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 

@@ -36,41 +36,48 @@ export function BidForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
         {isEditing ? "Edit your bid" : "Place a bid"}
       </h2>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="bid-amount" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Amount (₹)
+          Bid amount
         </label>
-        <input
-          id="bid-amount"
-          type="text"
-          inputMode="decimal"
-          placeholder="e.g. 50000"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          required
-          disabled={isPending}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        />
+        <div className="flex items-center gap-0">
+          <span className="flex h-10 items-center rounded-l-lg border border-r-0 border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+            ₹
+          </span>
+          <input
+            id="bid-amount"
+            type="text"
+            inputMode="decimal"
+            placeholder="e.g. 50000"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+            disabled={isPending}
+            className="h-10 flex-1 rounded-r-lg border border-zinc-300 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-accent/40 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+        </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+        </div>
       )}
       {success && (
-        <p className="text-sm text-green-600 dark:text-green-400">
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
           Bid {isEditing ? "updated" : "submitted"} successfully.
-        </p>
+        </div>
       )}
 
       <button
         type="submit"
         disabled={isPending}
-        className="self-start rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        className="w-full rounded-lg bg-brand-accent py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-accent-h disabled:opacity-50"
       >
         {isPending ? "Saving…" : isEditing ? "Update bid" : "Submit bid"}
       </button>

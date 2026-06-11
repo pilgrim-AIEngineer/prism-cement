@@ -3,8 +3,6 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Banner } from "@/components/ui/Banner";
-import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
 import { createProject, updateProject } from "@/server/actions/projects";
 
 interface CreateMode {
@@ -64,48 +62,110 @@ export function ProjectForm(props: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       {error && <Banner tone="error" title={error} />}
-      <TextField
+
+      <FormField
         id="project-name"
         label="Project name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
         required
-        autoFocus
-      />
-      <TextField
-        id="project-city"
-        label="City"
-        helpText="Optional — used as the zone shown to vendors"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-      />
-      <TextField
+        hint={null}
+      >
+        <input
+          id="project-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          autoFocus
+          placeholder="e.g. Skyline Residency Phase 2"
+          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        />
+      </FormField>
+
+      <FormField
         id="project-type"
         label="Project type"
-        helpText="Optional, e.g. Residential, Commercial, Industrial"
-        value={type}
-        onChange={(e) => setType(e.target.value)}
-      />
-      <div className="flex items-center justify-between gap-3 pt-1">
+        hint="Optional · e.g. Residential, Commercial, Industrial"
+      >
+        <input
+          id="project-type"
+          type="text"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          placeholder="e.g. Residential"
+          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        />
+      </FormField>
+
+      <FormField
+        id="project-city"
+        label="City"
+        hint="Optional · Shown to vendors as a general zone"
+      >
+        <input
+          id="project-city"
+          type="text"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder="e.g. Mumbai"
+          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        />
+      </FormField>
+
+      <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-zinc-700">
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-zinc-600 underline-offset-2 hover:underline dark:text-zinc-400"
+          className="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
         >
           Cancel
         </button>
-        <Button type="submit" disabled={isPending}>
-          {isPending
-            ? props.mode === "create"
-              ? "Creating…"
-              : "Saving…"
-            : props.mode === "create"
-              ? "Create project"
-              : "Save changes"}
-        </Button>
+        <button
+          type="submit"
+          disabled={isPending || !name.trim()}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-accent px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-accent-h disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isPending ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {props.mode === "create" ? "Creating…" : "Saving…"}
+            </>
+          ) : props.mode === "create" ? (
+            "Create project"
+          ) : (
+            "Save changes"
+          )}
+        </button>
       </div>
     </form>
+  );
+}
+
+function FormField({
+  id,
+  label,
+  required,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  hint: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-stone-700 dark:text-zinc-300">
+        {label}
+        {required && <span className="ml-1 text-brand-accent">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-stone-500 dark:text-zinc-400">{hint}</p>}
+    </div>
   );
 }
