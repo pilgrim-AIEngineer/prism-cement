@@ -67,8 +67,11 @@ async function changeUserStatus(
     // NOTE: this error reflects `target.status` back to the caller. This is
     // intentional here because this function is ADMIN-only — admins need to know
     // the current state to understand why the transition failed.
-    // TODO(security): audit all builder/vendor-facing error messages to ensure
-    // they do not leak internal model state (e.g. Prisma field values, row IDs).
+    // Builder/vendor-facing actions were audited (bids, requirements, projects,
+    // completion, forms): they return only generic, non-state-revealing messages
+    // ("Requirement not found", "Only DRAFT requirements can be edited", etc.),
+    // never Prisma field values or row IDs. This reflected-status path is the
+    // sole exception and is admin-gated.
     return fail(
       `Cannot ${auditAction.replace(/_/g, " ").toLowerCase()} a user with status ${target.status}`,
     );

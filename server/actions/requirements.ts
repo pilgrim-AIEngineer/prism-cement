@@ -16,6 +16,10 @@ import { isVendorOperationalInCategory } from "@/lib/rbac/vendorCategory";
 import type { ActionResult } from "@/server/types";
 import { fail } from "@/server/actions/utils";
 
+// Requirements a vendor may receive in a single feed response; caps unbounded
+// fan-out. Vendors with more page via the `offset` param on getVendorFeed.
+const VENDOR_FEED_PAGE_SIZE = 50;
+
 
 async function getVerifiedBuilderSession() {
   const session = await getSession();
@@ -299,8 +303,9 @@ export async function getRequirement(requirementId: string) {
 
 // Returns OPEN/REOPENED requirements across all categories this vendor is operational in,
 // serialized through vendorRequirementView — no project/builder identity ever returned.
-// TODO(pagination): No cursor/offset pagination — add take/skip before scale.
-export async function getVendorFeed(): Promise<ActionResult<VendorRequirementView[]>> {
+// Offset-paginated: at most VENDOR_FEED_PAGE_SIZE rows per call. Callers pass
+// `offset` to page; default 0 returns the first (most recent) page.
+export async function getVendorFeed(offset = 0): Promise<ActionResult<VendorRequirementView[]>> {
   const session = await getSession();
   if (!session || session.role !== "VENDOR") return { ok: false, error: "Unauthorized" };
 
@@ -320,6 +325,7 @@ export async function getVendorFeed(): Promise<ActionResult<VendorRequirementVie
   if (operationalCategories.length === 0) return { ok: true, data: [] };
 
   const categoryIds = operationalCategories.map((vc) => vc.categoryId);
+  const skip = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0;
 
   // SECURITY: select clause never touches project, builder, or BuilderProfile — see [[anonymity-serializer]].
   // REOPENED requirements are functionally open — vendors can still bid on them.
@@ -335,6 +341,8 @@ export async function getVendorFeed(): Promise<ActionResult<VendorRequirementVie
       category: { select: { id: true, name: true, slug: true } },
     },
     orderBy: { createdAt: "desc" },
+    skip,
+    take: VENDOR_FEED_PAGE_SIZE,
   });
 
   return { ok: true, data: requirements.map(vendorRequirementView) };

@@ -7,11 +7,18 @@ import { requireRole, requireOwnership, RbacError } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { submitBidSchema } from "@/lib/validation/bids";
+import { formSchemaSnapshotSchema } from "@/lib/validation/formSchema";
+import { buildBidFieldsSchema } from "@/lib/validation/requirements";
 import { notifyAdmins, newBidAdminPayload } from "@/lib/notifications";
 import { isVendorOperationalInCategory } from "@/lib/rbac/vendorCategory";
+import { hit } from "@/lib/rateLimit";
 import type { VendorBidView } from "@/lib/serializers";
 import type { ActionResult } from "@/server/types";
 import { fail } from "@/server/actions/utils";
+
+// Bids a vendor may keep in a single list response. A vendor with more than this
+// will need pagination (offset param below); this caps unbounded fan-out.
+const VENDOR_BIDS_PAGE_SIZE = 50;
 
 
 async function getVerifiedVendorSession() {
@@ -42,16 +49,36 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
   const auth = await getVerifiedVendorSession();
   if (!auth.ok) return auth;
 
+  // Rate limit: 30 bid writes / minute per vendor. Idempotent re-submits and
+  // edits all flow through here, so cap per-user to blunt spam.
+  const gate = hit(`bid:${auth.session.userId}`, 30, 60_000);
+  if (!gate.ok) return fail(`Too many bid submissions. Try again in ${gate.retryAfter}s.`);
+
   // 3. Requirement must be OPEN; vendor must be operational in its category
   const req = await db.requirement.findUnique({
     where: { id: parsed.data.requirementId },
-    select: { status: true, categoryId: true },
+    select: { status: true, categoryId: true, schemaSnapshot: true },
   });
   if (!req) return fail("Requirement not found");
   if (req.status !== "OPEN" && req.status !== "REOPENED") return fail("This requirement is not open for bids");
 
   const operational = await isVendorOperationalInCategory(auth.session.userId, req.categoryId);
   if (!operational) return fail("You are not approved to bid in this category");
+
+  // Schema-aware validation of fieldsJson against the requirement's PINNED
+  // snapshot: only vendor-visible, schema-defined keys are accepted (unknown
+  // keys rejected). The structural contact-info check already ran in the Zod
+  // schema; this enforces the per-requirement field contract. See [[dynamic-form]].
+  if (parsed.data.fieldsJson !== undefined) {
+    const snapshotParsed = formSchemaSnapshotSchema.safeParse(req.schemaSnapshot);
+    if (!snapshotParsed.success) return fail("Requirement has a corrupt schema snapshot");
+    const bidFieldsSchema = buildBidFieldsSchema(snapshotParsed.data.fields);
+    const fieldsParsed = bidFieldsSchema.safeParse(parsed.data.fieldsJson);
+    if (!fieldsParsed.success) {
+      return fail(fieldsParsed.error.issues[0]?.message ?? "Invalid bid fields");
+    }
+    parsed.data.fieldsJson = fieldsParsed.data;
+  }
 
   // Check for an existing bid on this requirement (one-bid-per-vendor rule)
   const existing = await db.bid.findUnique({
@@ -218,12 +245,14 @@ export interface VendorBidListItem {
   };
 }
 
-// TODO(pagination): No cursor/offset pagination. A vendor with hundreds of bids
-// will receive all rows in a single query. Add take/skip or cursor-based
-// pagination before this becomes a perf issue at scale.
-export async function getVendorBids(): Promise<ActionResult<VendorBidListItem[]>> {
+// Offset-paginated: at most VENDOR_BIDS_PAGE_SIZE rows per call so a vendor with
+// hundreds of bids never pulls the whole table in one query. Callers pass `offset`
+// to page; default 0 returns the first (most recent) page.
+export async function getVendorBids(offset = 0): Promise<ActionResult<VendorBidListItem[]>> {
   const session = await getSession();
   if (!session || session.role !== "VENDOR") return { ok: false, error: "Unauthorized" };
+
+  const skip = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0;
 
   const bids = await db.bid.findMany({
     where: { vendorId: session.userId },
@@ -244,6 +273,8 @@ export async function getVendorBids(): Promise<ActionResult<VendorBidListItem[]>
       },
     },
     orderBy: { createdAt: "desc" },
+    skip,
+    take: VENDOR_BIDS_PAGE_SIZE,
   });
 
   return {

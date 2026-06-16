@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { completeOnboardingSchema, loginSchema, type CompleteOnboardingInput, type LoginInput } from "@/lib/validation/auth";
+import { hit, callerIp } from "@/lib/rateLimit";
 import type { ActionResult } from "@/server/types";
 import { fail } from "@/server/actions/utils";
 export type { ActionResult } from "@/server/types";
@@ -31,11 +32,14 @@ export type { ActionResult } from "@/server/types";
 // ActionResult is now defined in @/server/types and re-exported above.
 
 
-// TODO(rate-limiting): login() has no rate limit. A malicious actor can hammer
-// it with arbitrary phone numbers to enumerate accounts or exhaust OTP slots.
-// For production, add an Upstash Ratelimit (or similar) check keyed on the
-// caller's IP before the OTP verification step.
+// Rate limit: keyed on caller IP so a single client cannot hammer login to
+// enumerate accounts or brute-force OTPs. 10 attempts / minute. See lib/rateLimit.
 export async function login(input: LoginInput): Promise<ActionResult<{ redirectTo: string }>> {
+  const gate = hit(`login:${await callerIp()}`, 10, 60_000);
+  if (!gate.ok) {
+    return fail(`Too many sign-in attempts. Try again in ${gate.retryAfter}s.`);
+  }
+
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return fail(parsed.error.issues[0]?.message ?? "Enter a valid phone number and OTP");

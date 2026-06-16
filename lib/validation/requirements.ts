@@ -104,3 +104,72 @@ export function buildDynamicRequirementSchema(
 
   return z.object(shape);
 }
+
+// Builds a Zod schema for a bid's `fieldsJson`, derived from the requirement's
+// PINNED schemaSnapshot. A bid may only carry values for fields the vendor can
+// actually see (`visibleToVendor`), so admin review stays consistent and the
+// double-blind boundary holds — a vendor cannot smuggle data into hidden keys.
+//
+// Unlike requirement form data, every bid field is OPTIONAL (a bid is a partial
+// response, not the full requirement) and unknown keys are REJECTED (`.strict()`)
+// so vendors cannot supply keys that don't exist in the schema. Vendor-visible
+// free text still goes through the contact-info refinement. section_header and
+// file fields carry no bid answer and are skipped.
+export function buildBidFieldsSchema(
+  fields: FormField[],
+): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+
+  for (const field of fields) {
+    if (!field.visibleToVendor) continue;
+    if (field.type === "section_header" || field.type === "file") continue;
+
+    let s: z.ZodTypeAny;
+    switch (field.type) {
+      case "text": {
+        s = z
+          .string()
+          .trim()
+          .refine(
+            (v) => !containsContactInfo(v),
+            `${field.label}: remove phone numbers, emails, or links`,
+          );
+        break;
+      }
+      case "number":
+      case "unit_number": {
+        s = z.coerce.number();
+        break;
+      }
+      case "select": {
+        const opts = field.options ?? [];
+        s = opts.length > 0 ? z.enum(opts as [string, ...string[]]) : z.string();
+        break;
+      }
+      case "multiselect": {
+        const opts = field.options ?? [];
+        s = z.array(opts.length > 0 ? z.enum(opts as [string, ...string[]]) : z.string());
+        break;
+      }
+      case "date": {
+        s = z
+          .string()
+          .trim()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, `${field.label}: use YYYY-MM-DD format`);
+        break;
+      }
+      case "boolean": {
+        s = z.boolean();
+        break;
+      }
+      default: {
+        s = z.unknown();
+      }
+    }
+
+    // Every bid field is optional — the vendor decides which to answer.
+    shape[field.key] = s.optional();
+  }
+
+  return z.object(shape).strict();
+}
