@@ -112,7 +112,8 @@ export async function createRequirement(input: {
   // giving up. The code space is 36^4 ≈ 1.68M so collisions are rare.
   let req!: { id: string; anonCode: string };
   const MAX_ATTEMPTS = 10;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+  try {
+   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const anonCode = generateAnonCode();
     try {
       req = await db.$transaction(async (tx) => {
@@ -156,6 +157,11 @@ export async function createRequirement(input: {
       if (isPrismaUniqueError && attempt < MAX_ATTEMPTS - 1) continue;
       throw e; // propagate on last attempt or non-unique errors
     }
+   }
+  } catch {
+    // Anon-code collisions are exhausted or the DB write failed. Never surface a
+    // raw Prisma error to the client — return a clean, retryable result.
+    return fail("Could not save the requirement. Please try again.");
   }
 
   return { ok: true, data: { id: req!.id, anonCode: req!.anonCode } };
@@ -236,7 +242,7 @@ export async function publishRequirement(requirementId: string): Promise<ActionR
   // 3. Ownership + state guard
   const req = await db.requirement.findUnique({
     where: { id: requirementId },
-    select: { id: true, status: true, project: { select: { builderId: true } } },
+    select: { id: true, status: true, project: { select: { builderId: true, status: true } } },
   });
   if (!req) return fail("Requirement not found");
   try {
@@ -245,6 +251,12 @@ export async function publishRequirement(requirementId: string): Promise<ActionR
     return fail(e instanceof RbacError ? e.message : "Unauthorized");
   }
   if (req.status !== "DRAFT") return fail("Only DRAFT requirements can be published");
+  // A requirement only goes live (and into the vendor feed) under an ACTIVE project.
+  // This keeps the project lifecycle authoritative: a DRAFT/COMPLETED/ARCHIVED
+  // project never has OPEN requirements vendors can bid on.
+  if (req.project.status !== "ACTIVE") {
+    return fail("Activate the project before publishing its requirements");
+  }
 
   // 4+5. Mutate + audit
   await db.$transaction(async (tx) => {
@@ -329,8 +341,16 @@ export async function getVendorFeed(offset = 0): Promise<ActionResult<VendorRequ
 
   // SECURITY: select clause never touches project, builder, or BuilderProfile — see [[anonymity-serializer]].
   // REOPENED requirements are functionally open — vendors can still bid on them.
+  // The `project.status = ACTIVE` filter is defense-in-depth: publish/reopen gate
+  // on ACTIVE and complete/archive cascade-close requirements, so an OPEN/REOPENED
+  // requirement should always sit under an ACTIVE project — but never surface one
+  // that somehow doesn't. (Filtering only, no project data enters the payload.)
   const requirements = await db.requirement.findMany({
-    where: { status: { in: ["OPEN", "REOPENED"] }, categoryId: { in: categoryIds } },
+    where: {
+      status: { in: ["OPEN", "REOPENED"] },
+      categoryId: { in: categoryIds },
+      project: { status: "ACTIVE" },
+    },
     select: {
       id: true,
       anonCode: true,

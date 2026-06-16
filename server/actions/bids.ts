@@ -57,10 +57,14 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
   // 3. Requirement must be OPEN; vendor must be operational in its category
   const req = await db.requirement.findUnique({
     where: { id: parsed.data.requirementId },
-    select: { status: true, categoryId: true, schemaSnapshot: true },
+    select: { status: true, categoryId: true, schemaSnapshot: true, project: { select: { status: true } } },
   });
   if (!req) return fail("Requirement not found");
   if (req.status !== "OPEN" && req.status !== "REOPENED") return fail("This requirement is not open for bids");
+  // Defense-in-depth: a live requirement should always sit under an ACTIVE project
+  // (publish/reopen gate on it, complete/archive cascade-close it), but never accept
+  // a bid against one whose project has since left ACTIVE.
+  if (req.project.status !== "ACTIVE") return fail("This requirement is not open for bids");
 
   const operational = await isVendorOperationalInCategory(auth.session.userId, req.categoryId);
   if (!operational) return fail("You are not approved to bid in this category");

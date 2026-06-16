@@ -90,7 +90,11 @@ export function buildDynamicRequirementSchema(
       }
 
       case "boolean": {
-        s = z.boolean().optional();
+        // A required boolean is a "must check this box" field (e.g. consent) —
+        // enforce it as true. Optional booleans accept true/false/absent.
+        s = field.required
+          ? z.boolean().refine((v) => v === true, `${field.label} is required`)
+          : z.boolean().optional();
         break;
       }
 

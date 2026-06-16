@@ -177,14 +177,23 @@ describe("buildDynamicRequirementSchema", () => {
     expect(schema.safeParse({ delivery: "15-06-2026" }).success).toBe(false);
   });
 
-  it("boolean field is always optional", () => {
+  it("optional boolean accepts true, false, or absence", () => {
     const schema = buildDynamicRequirementSchema([
-      { key: "urgent", type: "boolean", label: "Urgent", required: true, visibleToVendor: false },
+      { key: "urgent", type: "boolean", label: "Urgent", required: false, visibleToVendor: false },
     ]);
-    // boolean is optional regardless of `required` flag (checkbox absent = false intent)
     expect(schema.safeParse({}).success).toBe(true);
     expect(schema.safeParse({ urgent: true }).success).toBe(true);
     expect(schema.safeParse({ urgent: false }).success).toBe(true);
+  });
+
+  it("required boolean must be checked (true)", () => {
+    const schema = buildDynamicRequirementSchema([
+      { key: "consent", type: "boolean", label: "Consent", required: true, visibleToVendor: false },
+    ]);
+    // A required boolean is a "must check this box" field — absent or false is rejected.
+    expect(schema.safeParse({ consent: true }).success).toBe(true);
+    expect(schema.safeParse({ consent: false }).success).toBe(false);
+    expect(schema.safeParse({}).success).toBe(false);
   });
 
   // Version-pinning guarantee (structural test):

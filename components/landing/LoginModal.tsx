@@ -22,10 +22,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(120);
   const [isPending, startTransition] = useTransition();
-  // Countdown timer for OTP resend
+  // Countdown timer for OTP resend. The reset to 120 happens at the step
+  // transition (handleRequestOtp), not here — calling setState synchronously in
+  // an effect body triggers cascading renders.
   useEffect(() => {
     if (step !== "otp") return;
-    setSecondsLeft(120);
     const id = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) { clearInterval(id); return 0; }
@@ -68,6 +69,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
     setPhone(parsed.data);
+    setSecondsLeft(120);
     setStep("otp");
   }
 

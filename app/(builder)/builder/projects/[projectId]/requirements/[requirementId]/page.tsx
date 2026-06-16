@@ -32,7 +32,7 @@ export default async function RequirementDetailPage({ params }: Props) {
       createdAt: true,
       updatedAt: true,
       category: { select: { name: true } },
-      project: { select: { id: true, builderId: true, name: true } },
+      project: { select: { id: true, builderId: true, name: true, status: true } },
       formTemplate: { select: { version: true } },
       ...(SHOW_BID_COUNT
         ? { _count: { select: { bids: { where: { status: { not: "WITHDRAWN" } } } } } }
@@ -58,6 +58,7 @@ export default async function RequirementDetailPage({ params }: Props) {
   const snapshot = snapshotResult.data;
   const formData = (req.formDataJson ?? {}) as Record<string, unknown>;
   const isDraft = req.status === "DRAFT";
+  const projectActive = req.project.status === "ACTIVE";
   const bidCount: number | null = SHOW_BID_COUNT
     ? (req as { _count?: { bids: number } })._count?.bids ?? 0
     : null;
@@ -131,7 +132,7 @@ export default async function RequirementDetailPage({ params }: Props) {
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-2">
-            {isDraft && <PublishRequirementButton requirementId={req.id} />}
+            {isDraft && projectActive && <PublishRequirementButton requirementId={req.id} />}
             {(req.status === "AWARDED" || req.status === "CLOSED") && (
               <CompleteRequirementButton requirementId={req.id} />
             )}
@@ -147,7 +148,17 @@ export default async function RequirementDetailPage({ params }: Props) {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v4" /><path d="M12 16h.01" />
             </svg>
-            This requirement is a draft. Fill in the details below, then publish it to open it for vendor bids.
+            {projectActive ? (
+              <span>This requirement is a draft. Fill in the details below, then publish it to open it for vendor bids.</span>
+            ) : (
+              <span>
+                This requirement is a draft. Activate the project (from the{" "}
+                <Link href={`/builder/projects/${projectId}`} className="font-medium underline underline-offset-2">
+                  project page
+                </Link>
+                ) before you can publish it for vendor bids.
+              </span>
+            )}
           </div>
         )}
       </div>
