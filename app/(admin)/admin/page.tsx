@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session || session.role !== "ADMIN") redirect("/login");
 
   const [
     pendingCount,

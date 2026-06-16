@@ -78,6 +78,22 @@ export async function completeRequirement(requirementId: string): Promise<Action
     return fail(`Cannot complete a requirement with status ${req.status}. Must be AWARDED or CLOSED.`);
   }
 
+  // An AWARDED requirement may have one or more Award rows. Completing the
+  // requirement while an award is still PENDING/BROKERED would orphan it:
+  // completeAward() guards on requirement === AWARDED, so once the requirement
+  // is COMPLETED the award (and its SELECTED bid) can never be finished. Require
+  // every award to be resolved (COMPLETED/CANCELLED) first.
+  if (req.status === "AWARDED") {
+    const outstandingAwards = await db.award.count({
+      where: { requirementId, status: { in: ["PENDING", "BROKERED"] } },
+    });
+    if (outstandingAwards > 0) {
+      return fail(
+        "Complete the outstanding award(s) before completing this requirement.",
+      );
+    }
+  }
+
   // 4+5. Mutate + audit + notify builder
   const builderId = req.project.builderId;
   await db.$transaction(async (tx) => {

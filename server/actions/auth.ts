@@ -166,6 +166,14 @@ export async function completeOnboarding(
     }
 
     return createdUser;
+  },
+  {
+    // Local dev hits the remote Supabase pooler, so every statement in this
+    // transaction is a network round trip. The default 5s interactive-transaction
+    // timeout can elapse before COMMIT lands, yielding P2028 "Transaction not
+    // found". Give the commit room on high-latency connections.
+    maxWait: 10_000,
+    timeout: 20_000,
   });
 
   await createSession({ userId: user.id, role: user.role });

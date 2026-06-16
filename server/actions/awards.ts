@@ -6,7 +6,6 @@ import { requireRole, RbacError } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { selectBidsSchema, brokerAwardSchema, closeRequirementSchema } from "@/lib/validation/awards";
-import { adminRequirementBidView } from "@/lib/serializers/adminView";
 import {
   notify,
   requirementAwardedBuilderPayload,
@@ -15,7 +14,6 @@ import {
   awardCompletedVendorPayload,
   requirementCompletedBuilderPayload,
 } from "@/lib/notifications";
-import type { AdminRequirementBidView } from "@/lib/serializers";
 import type { ActionResult } from "@/server/types";
 import { fail } from "@/server/actions/utils";
 
@@ -29,69 +27,6 @@ async function getAdminSession() {
   } catch (e) {
     return { ok: false as const, error: e instanceof RbacError ? e.message : "Unauthorized" };
   }
-}
-
-// ── Read helper ────────────────────────────────────────────────────────────────
-
-export async function getRequirementWithBids(
-  requirementId: string,
-): Promise<ActionResult<AdminRequirementBidView>> {
-  const parsed = uuidSchema.safeParse(requirementId);
-  if (!parsed.success) return fail("Invalid requirement ID");
-
-  const auth = await getAdminSession();
-  if (!auth.ok) return auth;
-
-  const req = await db.requirement.findUnique({
-    where: { id: requirementId },
-    select: {
-      id: true,
-      anonCode: true,
-      status: true,
-      cityZone: true,
-      schemaSnapshot: true,
-      formDataJson: true,
-      category: { select: { id: true, name: true, slug: true } },
-      project: {
-        select: {
-          id: true,
-          name: true,
-          city: true,
-          type: true,
-          builder: {
-            select: {
-              id: true,
-              phone: true,
-              builderProfile: { select: { name: true, company: true } },
-            },
-          },
-        },
-      },
-      bids: {
-        select: {
-          id: true,
-          amount: true,
-          fieldsJson: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          vendor: {
-            select: {
-              id: true,
-              phone: true,
-              vendorProfile: { select: { name: true, company: true, city: true } },
-            },
-          },
-          award: { select: { id: true, status: true, brokeredAt: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
-
-  if (!req) return fail("Requirement not found");
-
-  return { ok: true, data: adminRequirementBidView(req) };
 }
 
 // ── Mutations ────────────────────────────────────────────────────────────────
@@ -111,7 +46,7 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
   // 3. Verify all bidIds belong to this requirement and are SUBMITTED
   const selectedBids = await db.bid.findMany({
     where: { id: { in: parsed.data.bidIds }, requirementId: parsed.data.requirementId },
-    select: { id: true, status: true, amount: true },
+    select: { id: true, status: true, amount: true, vendorId: true },
   });
 
   if (selectedBids.length !== parsed.data.bidIds.length) {
@@ -122,19 +57,24 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
     return fail("Only SUBMITTED bids can be selected; remove withdrawn or already-processed bids");
   }
 
-  // 4+5. Transaction with optimistic lock
+  // 4+5. Transaction with optimistic lock.
+  // Bumped timeout (default 5s) because awarding fans out into per-bid award
+  // creation, audit rows, and per-vendor notifications — sequential round-trips
+  // against the Supabase pooler can exceed the default and close the tx.
   try {
     await db.$transaction(async (tx) => {
       // Load requirement info before updating so we can use it in notifications.
       const reqInfo = await tx.requirement.findUnique({
         where: { id: parsed.data.requirementId },
         select: {
+          status: true,
           anonCode: true,
           project: { select: { builderId: true } },
           category: { select: { name: true } },
         },
       });
       if (!reqInfo) throw new Error("NOT_FOUND");
+      const priorStatus = reqInfo.status;
 
       // Optimistic lock: updateMany only succeeds when status is OPEN or REOPENED.
       // REOPENED requirements are functionally open — vendors can bid on them
@@ -145,21 +85,27 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
       });
       if (reqUpdate.count === 0) throw new Error("NOT_OPEN");
 
-      // Snapshot bids-to-not-select BEFORE the update so we can audit them.
+      // Snapshot bids-to-not-select BEFORE the update so we can audit & notify them.
       const toNotSelect = await tx.bid.findMany({
         where: {
           requirementId: parsed.data.requirementId,
           status: "SUBMITTED",
           id: { notIn: parsed.data.bidIds },
         },
-        select: { id: true, amount: true },
+        select: { id: true, amount: true, vendorId: true },
       });
 
-      // Mark selected → SELECTED
-      await tx.bid.updateMany({
-        where: { id: { in: parsed.data.bidIds } },
+      // Mark selected → SELECTED. The status filter is re-applied INSIDE the tx
+      // (selectedBids was read before the tx began): if a vendor withdrew one of
+      // the chosen bids in the interim, the count won't match and we roll back —
+      // otherwise the updateMany-by-id would silently resurrect a WITHDRAWN bid.
+      const selectedUpdate = await tx.bid.updateMany({
+        where: { id: { in: parsed.data.bidIds }, status: "SUBMITTED" },
         data: { status: "SELECTED" },
       });
+      if (selectedUpdate.count !== parsed.data.bidIds.length) {
+        throw new Error("BID_CHANGED");
+      }
 
       // Mark remaining SUBMITTED → NOT_SELECTED
       if (toNotSelect.length > 0) {
@@ -169,10 +115,13 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
         });
       }
 
-      // Create one Award row per selected bid
-      const awards = await Promise.all(
-        parsed.data.bidIds.map((bidId) =>
-          tx.award.create({
+      // Create one Award row per selected bid.
+      // Sequential (not Promise.all): Prisma interactive transactions do not
+      // support concurrent queries on the same tx client.
+      const awards = [];
+      for (const bidId of parsed.data.bidIds) {
+        awards.push(
+          await tx.award.create({
             data: {
               requirementId: parsed.data.requirementId,
               bidId,
@@ -180,8 +129,8 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
               status: "PENDING",
             },
           }),
-        ),
-      );
+        );
+      }
 
       // Audit: requirement status change
       await writeAudit(tx, {
@@ -189,7 +138,7 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
         action: "AWARD_REQUIREMENT",
         entity: "requirement",
         entityId: parsed.data.requirementId,
-        before: { status: "OPEN" },
+        before: { status: priorStatus },
         after: {
           status: "AWARDED",
           selectedBidIds: parsed.data.bidIds,
@@ -232,12 +181,8 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
         requirementAwardedBuilderPayload({ requirementId: parsed.data.requirementId, anonCode }),
       );
 
-      // Load vendor IDs for selected bids so we can notify them.
-      const selectedVendors = await tx.bid.findMany({
-        where: { id: { in: parsed.data.bidIds } },
-        select: { vendorId: true },
-      });
-      for (const { vendorId } of selectedVendors) {
+      // Selected vendors — vendorId already loaded in `selectedBids` above.
+      for (const { vendorId } of selectedBids) {
         await notify(
           tx,
           vendorId,
@@ -247,27 +192,25 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
       }
 
       // Not-selected vendors: neutral notification — no builder/project identity.
-      for (const bid of toNotSelect) {
-        const notSelectedBid = await tx.bid.findUnique({
-          where: { id: bid.id },
-          select: { vendorId: true },
-        });
-        if (notSelectedBid) {
-          await notify(
-            tx,
-            notSelectedBid.vendorId,
-            "BID_NOT_SELECTED",
-            bidNotSelectedVendorPayload({ anonCode, category: categoryName }),
-          );
-        }
+      // vendorId already loaded in the `toNotSelect` snapshot above.
+      for (const { vendorId } of toNotSelect) {
+        await notify(
+          tx,
+          vendorId,
+          "BID_NOT_SELECTED",
+          bidNotSelectedVendorPayload({ anonCode, category: categoryName }),
+        );
       }
-    });
+    }, { timeout: 15000 });
   } catch (e) {
     if (e instanceof Error && e.message === "NOT_FOUND") {
       return fail("Requirement not found");
     }
     if (e instanceof Error && e.message === "NOT_OPEN") {
       return fail("This requirement is not OPEN or REOPENED — cannot award again");
+    }
+    if (e instanceof Error && e.message === "BID_CHANGED") {
+      return fail("One or more selected bids changed (e.g. were withdrawn) — refresh and try again");
     }
     throw e;
   }

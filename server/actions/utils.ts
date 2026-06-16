@@ -1,5 +1,3 @@
-"use server";
-
 import type { ActionResult } from "@/server/types";
 
 /**

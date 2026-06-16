@@ -285,7 +285,7 @@ export default async function AdminRequirementDetailPage({ params }: Props) {
       </section>
 
       {/* Actions */}
-      {view.status === "OPEN" && (
+      {(view.status === "OPEN" || view.status === "REOPENED") && (
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
