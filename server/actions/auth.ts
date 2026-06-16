@@ -13,6 +13,7 @@ import {
 import { writeAudit } from "@/lib/audit";
 import { completeOnboardingSchema, loginSchema, type CompleteOnboardingInput, type LoginInput } from "@/lib/validation/auth";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 export type { ActionResult } from "@/server/types";
 
 // Authentication bootstrap — deliberately NOT the standard domain-mutation
@@ -29,10 +30,11 @@ export type { ActionResult } from "@/server/types";
 
 // ActionResult is now defined in @/server/types and re-exported above.
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
+// TODO(rate-limiting): login() has no rate limit. A malicious actor can hammer
+// it with arbitrary phone numbers to enumerate accounts or exhaust OTP slots.
+// For production, add an Upstash Ratelimit (or similar) check keyed on the
+// caller's IP before the OTP verification step.
 export async function login(input: LoginInput): Promise<ActionResult<{ redirectTo: string }>> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
@@ -48,6 +50,13 @@ export async function login(input: LoginInput): Promise<ActionResult<{ redirectT
   const user = await db.user.findUnique({ where: { phone } });
 
   if (user) {
+    // REJECTED users must not receive a valid session — they should see an
+    // explicit rejection message rather than a partially-functional dashboard.
+    if (user.status === "REJECTED") {
+      return fail(
+        "Your application has been reviewed and was not approved. Contact support if you believe this is an error.",
+      );
+    }
     await createSession({ userId: user.id, role: user.role });
     return { ok: true, data: { redirectTo: roleHomePath(user.role) } };
   }

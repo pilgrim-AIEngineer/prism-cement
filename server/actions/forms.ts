@@ -11,10 +11,8 @@ import {
   type CreateFormTemplateInput,
 } from "@/lib/validation/formSchema";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getAdminSession(): Promise<
   { ok: false; error: string } | { ok: true; session: { userId: string } }
@@ -114,17 +112,21 @@ export async function archiveFormTemplate(templateId: string): Promise<ActionRes
   if (!template) return fail("Form template not found");
   if (template.status === "ARCHIVED") return fail("Form template is already archived");
 
-  const live = await db.formTemplate.findFirst({
-    where: { categoryId: template.categoryId, status: "ACTIVE" },
-    orderBy: { version: "desc" },
-    select: { id: true },
-  });
-  if (live?.id !== templateId) {
-    return fail("Only the live (highest-version ACTIVE) template can be archived");
-  }
-
-  // 4+5. Update + writeAudit
+  // 4+5. Update + writeAudit — live-version check is INSIDE the transaction so
+  // a concurrent createFormTemplate cannot slip a newer version between the check
+  // and the archive (TOCTOU fix).
+  let liveCheckFailed = false;
   await db.$transaction(async (tx) => {
+    // Re-verify inside the transaction that this is still the live version.
+    const liveInsideTx = await tx.formTemplate.findFirst({
+      where: { categoryId: template.categoryId, status: "ACTIVE" },
+      orderBy: { version: "desc" },
+      select: { id: true },
+    });
+    if (liveInsideTx?.id !== templateId) {
+      liveCheckFailed = true;
+      return; // will exit the transaction without committing any changes
+    }
     await tx.formTemplate.update({
       where: { id: templateId },
       data: { status: "ARCHIVED" },
@@ -138,6 +140,10 @@ export async function archiveFormTemplate(templateId: string): Promise<ActionRes
       after: { status: "ARCHIVED", version: template.version },
     });
   });
+
+  if (liveCheckFailed) {
+    return fail("Only the live (highest-version ACTIVE) template can be archived");
+  }
 
   return { ok: true, data: undefined };
 }

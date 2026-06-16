@@ -17,9 +17,12 @@ export const config = {
   matcher: ["/login", "/onboarding", "/admin/:path*", "/builder/:path*", "/vendor/:path*"],
 };
 
-// Per-process in-memory cache for suspension status — survives across warm
-// serverless invocations on the same instance. A 30 s TTL means a suspended
-// user is kicked out on their next request within half a minute.
+// Per-process in-memory cache for suspension status. On Vercel, multiple
+// serverless instances run in parallel — a suspension applied in instance A
+// won't be reflected in instance B until that instance's cache TTL expires.
+// This means a suspended user could continue making requests for up to 30 s
+// PER INSTANCE, not 30 s globally. This is an accepted, documented trade-off
+// for the MVP. A distributed cache (e.g. Redis) would remove this gap.
 const STATUS_CACHE = new Map<string, { suspended: boolean; ts: number }>();
 const STATUS_CACHE_TTL_MS = 30_000;
 

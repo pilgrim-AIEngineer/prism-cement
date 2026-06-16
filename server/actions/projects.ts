@@ -7,6 +7,7 @@ import { requireRole, requireOwnership, RbacError } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
 const projectInputSchema = z.object({
   name: z.string().trim().min(1, "Project name is required").max(200),
@@ -16,9 +17,6 @@ const projectInputSchema = z.object({
 
 type ProjectInput = z.infer<typeof projectInputSchema>;
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getVerifiedBuilderSession() {
   const session = await getSession();

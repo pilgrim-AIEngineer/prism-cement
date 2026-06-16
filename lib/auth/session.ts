@@ -14,11 +14,16 @@ export { PENDING_AUTH_COOKIE_NAME, SESSION_COOKIE_NAME };
 
 const PENDING_AUTH_MAX_AGE_SECONDS = 10 * 60;
 
+// Session TTL: 7 days. Keep this below the JWT signing-key rotation interval.
+// A `sessionIssuedAt` field can be added to the token payload later for sliding expiry.
+const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
 const baseCookieOptions = {
   httpOnly: true,
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
   path: "/",
+  maxAge: SESSION_MAX_AGE_SECONDS,
 } as const;
 
 export async function createSession(payload: SessionPayload): Promise<void> {

@@ -11,10 +11,8 @@ import {
   requirementCompletedBuilderPayload,
 } from "@/lib/notifications";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 // Returns the session if caller is an ADMIN or a VERIFIED BUILDER; also returns
 // their role so ownership checks can be skipped for ADMINs.

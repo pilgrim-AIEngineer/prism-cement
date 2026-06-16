@@ -10,10 +10,8 @@ import { uuidSchema } from "@/lib/validation/common";
 import { selectCategoriesSchema } from "@/lib/validation/users";
 import { notify, userVerifiedPayload, categoryApprovedPayload } from "@/lib/notifications";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getAdminSession(): Promise<
   { ok: false; error: string } | { ok: true; session: SessionPayload }
@@ -66,6 +64,11 @@ async function changeUserStatus(
 
   const allowed = ALLOWED_FROM[auditAction];
   if (!allowed.includes(target.status)) {
+    // NOTE: this error reflects `target.status` back to the caller. This is
+    // intentional here because this function is ADMIN-only — admins need to know
+    // the current state to understand why the transition failed.
+    // TODO(security): audit all builder/vendor-facing error messages to ensure
+    // they do not leak internal model state (e.g. Prisma field values, row IDs).
     return fail(
       `Cannot ${auditAction.replace(/_/g, " ").toLowerCase()} a user with status ${target.status}`,
     );

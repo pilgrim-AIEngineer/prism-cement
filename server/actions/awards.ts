@@ -17,10 +17,8 @@ import {
 } from "@/lib/notifications";
 import type { AdminRequirementBidView } from "@/lib/serializers";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getAdminSession() {
   const session = await getSession();
@@ -138,9 +136,11 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
       });
       if (!reqInfo) throw new Error("NOT_FOUND");
 
-      // Optimistic lock: updateMany only succeeds when status is still OPEN.
+      // Optimistic lock: updateMany only succeeds when status is OPEN or REOPENED.
+      // REOPENED requirements are functionally open — vendors can bid on them
+      // and admin must be able to award them (PRD §4).
       const reqUpdate = await tx.requirement.updateMany({
-        where: { id: parsed.data.requirementId, status: "OPEN" },
+        where: { id: parsed.data.requirementId, status: { in: ["OPEN", "REOPENED"] } },
         data: { status: "AWARDED" },
       });
       if (reqUpdate.count === 0) throw new Error("NOT_OPEN");
@@ -267,7 +267,7 @@ export async function selectBids(input: unknown): Promise<ActionResult> {
       return fail("Requirement not found");
     }
     if (e instanceof Error && e.message === "NOT_OPEN") {
-      return fail("This requirement is not OPEN — cannot award again");
+      return fail("This requirement is not OPEN or REOPENED — cannot award again");
     }
     throw e;
   }
@@ -339,6 +339,7 @@ export async function completeAward(input: unknown): Promise<ActionResult> {
           requirement: {
             select: {
               id: true,
+              status: true,
               anonCode: true,
               project: { select: { builderId: true } },
               category: { select: { name: true } },
@@ -357,12 +358,22 @@ export async function completeAward(input: unknown): Promise<ActionResult> {
       vendorId,
       requirement: {
         id: requirementId,
+        status: requirementStatus,
         anonCode,
         project: { builderId },
         category: { name: categoryName },
       },
     },
   } = award;
+
+  // Guard: requirement must still be in AWARDED state. If it was closed by
+  // another admin path concurrently, completing the award would leave the
+  // requirement in an inconsistent state.
+  if (requirementStatus !== "AWARDED") {
+    return fail(
+      `Cannot complete award — requirement is no longer AWARDED (current status: ${requirementStatus})`,
+    );
+  }
 
   // 4+5. Mutate + audit + notify
   await db.$transaction(async (tx) => {
@@ -422,7 +433,10 @@ export async function closeRequirement(input: unknown): Promise<ActionResult> {
     select: { id: true, status: true },
   });
   if (!req) return fail("Requirement not found");
-  if (req.status !== "OPEN") return fail("Only OPEN requirements can be closed");
+  // Both OPEN and REOPENED requirements can be manually closed by admin (PRD §4).
+  if (req.status !== "OPEN" && req.status !== "REOPENED") {
+    return fail("Only OPEN or REOPENED requirements can be closed");
+  }
 
   // 4+5. Mutate + audit
   await db.$transaction(async (tx) => {
@@ -435,7 +449,7 @@ export async function closeRequirement(input: unknown): Promise<ActionResult> {
       action: "CLOSE_REQUIREMENT",
       entity: "requirement",
       entityId: parsed.data.requirementId,
-      before: { status: "OPEN" },
+      before: { status: req.status },
       after: { status: "CLOSED" },
     });
   });

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { PDFDocument, PDFName } from "pdf-lib";
 import { randomUUID } from "node:crypto";
 
 // Supported MIME types and their canonical extensions.
@@ -21,16 +22,40 @@ function getStorageClient() {
   return createClient(url, key).storage;
 }
 
-// Strip EXIF/author metadata from images using sharp.
-// PDFs are passed through as-is (no sharp processing needed for the MVP).
+// Strip identifying metadata from uploads before they reach storage (PRD §6).
+// Images go through sharp; PDFs through pdf-lib.
 async function scrubMetadata(buffer: Buffer, mimeType: string): Promise<Buffer> {
-  if (mimeType === "application/pdf") return buffer;
+  if (mimeType === "application/pdf") return scrubPdfMetadata(buffer);
 
-  // sharp automatically strips all metadata when converting — explicit withMetadata(false) is the default.
   // sharp strips all metadata by default (no .withMetadata() call).
   // .rotate() honours the EXIF orientation before stripping, so the image
   // displays correctly after metadata removal.
   return sharp(buffer).rotate().toBuffer();
+}
+
+// Remove the document-information dictionary and XMP metadata from a PDF.
+// These fields (author, title, producer, creator, keywords) routinely carry the
+// originating company/user name and would leak builder identity to vendors.
+async function scrubPdfMetadata(buffer: Buffer): Promise<Buffer> {
+  const pdf = await PDFDocument.load(buffer, { updateMetadata: false });
+
+  // Clear the standard document-info dictionary entries.
+  pdf.setTitle("");
+  pdf.setAuthor("");
+  pdf.setSubject("");
+  pdf.setKeywords([]);
+  pdf.setProducer("");
+  pdf.setCreator("");
+
+  // Drop the XMP metadata stream entirely — pdf-lib has no setter for it, so
+  // delete the /Metadata reference from the catalog if present.
+  const catalog = pdf.catalog;
+  if (catalog.has(PDFName.of("Metadata"))) {
+    catalog.delete(PDFName.of("Metadata"));
+  }
+
+  const out = await pdf.save();
+  return Buffer.from(out);
 }
 
 export interface UploadResult {

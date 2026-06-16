@@ -1,25 +1,30 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
-// Write a notification row inside the same transaction as the triggering mutation.
-// Payload must already be stripped of cross-party identity — see payloads.ts.
+// Accepts either a full PrismaClient (for post-commit notifications) or a
+// Prisma.TransactionClient (for in-transaction notifications).
+type DbClient = PrismaClient | Prisma.TransactionClient;
+
+// Write a notification row. Payload must already be stripped of cross-party
+// identity — see payloads.ts.
 export async function notify(
-  tx: Prisma.TransactionClient,
+  db: DbClient,
   userId: string,
   type: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  await tx.notification.create({ data: { userId, type, payload: payload as Prisma.InputJsonValue } });
+  await db.notification.create({ data: { userId, type, payload: payload as Prisma.InputJsonValue } });
 }
 
 // Finds all ADMIN users and notifies each one. Admin sees full detail — no stripping.
+// Can be called inside or outside a transaction; pass `tx` to run inside, or `db` for post-commit.
 export async function notifyAdmins(
-  tx: Prisma.TransactionClient,
+  db: DbClient,
   type: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const admins = await tx.user.findMany({
+  const admins = await db.user.findMany({
     where: { role: "ADMIN" },
     select: { id: true },
   });
-  await Promise.all(admins.map((a) => notify(tx, a.id, type, payload)));
+  await Promise.all(admins.map((a) => notify(db, a.id, type, payload)));
 }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation/common";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
 export interface NotificationItem {
   id: string;
@@ -13,9 +14,6 @@ export interface NotificationItem {
   createdAt: Date;
 }
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 export async function getNotifications(): Promise<ActionResult<NotificationItem[]>> {
   const session = await getSession();

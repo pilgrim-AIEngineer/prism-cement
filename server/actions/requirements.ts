@@ -12,11 +12,10 @@ import { buildDynamicRequirementSchema } from "@/lib/validation/requirements";
 import { vendorRequirementView } from "@/lib/serializers";
 import type { VendorRequirementView } from "@/lib/serializers";
 import { SHOW_BID_COUNT } from "@/lib/config";
+import { isVendorOperationalInCategory } from "@/lib/rbac/vendorCategory";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getVerifiedBuilderSession() {
   const session = await getSession();
@@ -43,18 +42,6 @@ function generateAnonCode(): string {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
-}
-
-async function allocateAnonCode(): Promise<string> {
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const code = generateAnonCode();
-    const exists = await db.requirement.findUnique({
-      where: { anonCode: code },
-      select: { id: true },
-    });
-    if (!exists) return code;
-  }
-  throw new Error("Failed to allocate unique anonCode — try again");
 }
 
 export async function createRequirement(input: {
@@ -113,46 +100,61 @@ export async function createRequirement(input: {
     return fail(formDataParsed.error.issues[0]?.message ?? "Form validation failed");
   }
 
-  // cityZone: inherit project city as the generalized zone (never an exact address).
   const cityZone = project.city ?? null;
 
-  const anonCode = await allocateAnonCode();
+  // 4+5. Mutate + writeAudit — anonCode is allocated inside the transaction so
+  // concurrent inserts cannot both "see" the same code as free (check-then-act
+  // race). On a P2002 unique-constraint error we retry up to 10 times before
+  // giving up. The code space is 36^4 ≈ 1.68M so collisions are rare.
+  let req!: { id: string; anonCode: string };
+  const MAX_ATTEMPTS = 10;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const anonCode = generateAnonCode();
+    try {
+      req = await db.$transaction(async (tx) => {
+        const r = await tx.requirement.create({
+          data: {
+            projectId: parsedInput.data.projectId,
+            categoryId: parsedInput.data.categoryId,
+            formTemplateId: liveTemplate.id,
+            // Deep copy — from this point on, the snapshot is immutable with respect
+            // to any future FormTemplate edits. See [[dynamic-form]].
+            schemaSnapshot: snapshot as object,
+            formDataJson: formDataParsed.data as object,
+            anonCode,
+            cityZone,
+            status: "DRAFT",
+          },
+        });
+        await writeAudit(tx, {
+          actorId: auth.session.userId,
+          action: "CREATE_REQUIREMENT",
+          entity: "requirement",
+          entityId: r.id,
+          before: null,
+          after: {
+            projectId: r.projectId,
+            categoryId: r.categoryId,
+            formTemplateId: r.formTemplateId,
+            formTemplateVersion: liveTemplate.version,
+            anonCode: r.anonCode,
+            status: r.status,
+          },
+        });
+        return r;
+      });
+      // Transaction succeeded — break the retry loop.
+      break;
+    } catch (e: unknown) {
+      // P2002 = Prisma unique constraint violation. Retry with a fresh code.
+      const isPrismaUniqueError =
+        e instanceof Error && "code" in e && (e as { code: string }).code === "P2002";
+      if (isPrismaUniqueError && attempt < MAX_ATTEMPTS - 1) continue;
+      throw e; // propagate on last attempt or non-unique errors
+    }
+  }
 
-  // 4+5. Mutate + writeAudit
-  const req = await db.$transaction(async (tx) => {
-    const r = await tx.requirement.create({
-      data: {
-        projectId: parsedInput.data.projectId,
-        categoryId: parsedInput.data.categoryId,
-        formTemplateId: liveTemplate.id,
-        // Deep copy — from this point on, the snapshot is immutable with respect
-        // to any future FormTemplate edits. See [[dynamic-form]].
-        schemaSnapshot: snapshot as object,
-        formDataJson: formDataParsed.data as object,
-        anonCode,
-        cityZone,
-        status: "DRAFT",
-      },
-    });
-    await writeAudit(tx, {
-      actorId: auth.session.userId,
-      action: "CREATE_REQUIREMENT",
-      entity: "requirement",
-      entityId: r.id,
-      before: null,
-      after: {
-        projectId: r.projectId,
-        categoryId: r.categoryId,
-        formTemplateId: r.formTemplateId,
-        formTemplateVersion: liveTemplate.version,
-        anonCode: r.anonCode,
-        status: r.status,
-      },
-    });
-    return r;
-  });
-
-  return { ok: true, data: { id: req.id, anonCode: req.anonCode } };
+  return { ok: true, data: { id: req!.id, anonCode: req!.anonCode } };
 }
 
 export async function updateRequirement(input: {
@@ -295,17 +297,9 @@ export async function getRequirement(requirementId: string) {
 
 // ── Vendor read helpers ────────────────────────────────────────────────────
 
-// Both user.status AND vendorCategory.verified must hold.
-async function isVendorOperationalInCategory(vendorId: string, categoryId: string): Promise<boolean> {
-  const result = await db.vendorCategory.findUnique({
-    where: { vendorId_categoryId: { vendorId, categoryId } },
-    select: { verified: true, vendor: { select: { status: true } } },
-  });
-  return result?.verified === true && result.vendor.status === "VERIFIED";
-}
-
-// Returns OPEN requirements across all categories this vendor is operational in,
+// Returns OPEN/REOPENED requirements across all categories this vendor is operational in,
 // serialized through vendorRequirementView — no project/builder identity ever returned.
+// TODO(pagination): No cursor/offset pagination — add take/skip before scale.
 export async function getVendorFeed(): Promise<ActionResult<VendorRequirementView[]>> {
   const session = await getSession();
   if (!session || session.role !== "VENDOR") return { ok: false, error: "Unauthorized" };

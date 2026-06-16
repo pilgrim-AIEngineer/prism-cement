@@ -8,12 +8,11 @@ import { writeAudit } from "@/lib/audit";
 import { uuidSchema } from "@/lib/validation/common";
 import { submitBidSchema } from "@/lib/validation/bids";
 import { notifyAdmins, newBidAdminPayload } from "@/lib/notifications";
+import { isVendorOperationalInCategory } from "@/lib/rbac/vendorCategory";
 import type { VendorBidView } from "@/lib/serializers";
 import type { ActionResult } from "@/server/types";
+import { fail } from "@/server/actions/utils";
 
-function fail(error: string): ActionResult<never> {
-  return { ok: false, error };
-}
 
 async function getVerifiedVendorSession() {
   const session = await getSession();
@@ -33,14 +32,6 @@ async function getVerifiedVendorSession() {
   }
 }
 
-// Both user.status AND vendorCategory.verified must hold — neither alone is sufficient.
-async function isVendorOperationalInCategory(vendorId: string, categoryId: string): Promise<boolean> {
-  const result = await db.vendorCategory.findUnique({
-    where: { vendorId_categoryId: { vendorId, categoryId } },
-    select: { verified: true, vendor: { select: { status: true } } },
-  });
-  return result?.verified === true && result.vendor.status === "VERIFIED";
-}
 
 export async function submitBid(input: unknown): Promise<ActionResult<{ id: string }>> {
   // 1. Validate
@@ -115,7 +106,7 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
     select: { anonCode: true },
   });
 
-  // 4+5. Create new bid + audit + notify admins
+  // 4+5. Create new bid + audit
   let bidId!: string;
   await db.$transaction(async (tx) => {
     const bid = await tx.bid.create({
@@ -140,22 +131,26 @@ export async function submitBid(input: unknown): Promise<ActionResult<{ id: stri
         status: "SUBMITTED",
       },
     });
-    if (reqForNotif) {
-      await notifyAdmins(
-        tx,
-        "NEW_BID",
-        newBidAdminPayload({
-          requirementId: parsed.data.requirementId,
-          anonCode: reqForNotif.anonCode,
-          bidId: bid.id,
-          vendorId: auth.session.userId,
-          vendorName: vendorProfile?.name ?? null,
-          vendorPhone: "", // phone is not loaded here for perf; admin sees it in the bid review page
-          amount: parsed.data.amount.toString(),
-        }),
-      );
-    }
   });
+
+  // Fire admin notifications AFTER the transaction commits so a notification
+  // failure never rolls back the bid. Admin sees the bid on next page load
+  // regardless — this is purely informational.
+  if (reqForNotif) {
+    await notifyAdmins(
+      db,
+      "NEW_BID",
+      newBidAdminPayload({
+        requirementId: parsed.data.requirementId,
+        anonCode: reqForNotif.anonCode,
+        bidId,
+        vendorId: auth.session.userId,
+        vendorName: vendorProfile?.name ?? null,
+        vendorPhone: "", // phone is not loaded here for perf; admin sees it in the bid review page
+        amount: parsed.data.amount.toString(),
+      }),
+    );
+  }
 
   return { ok: true, data: { id: bidId } };
 }
@@ -223,6 +218,9 @@ export interface VendorBidListItem {
   };
 }
 
+// TODO(pagination): No cursor/offset pagination. A vendor with hundreds of bids
+// will receive all rows in a single query. Add take/skip or cursor-based
+// pagination before this becomes a perf issue at scale.
 export async function getVendorBids(): Promise<ActionResult<VendorBidListItem[]>> {
   const session = await getSession();
   if (!session || session.role !== "VENDOR") return { ok: false, error: "Unauthorized" };
