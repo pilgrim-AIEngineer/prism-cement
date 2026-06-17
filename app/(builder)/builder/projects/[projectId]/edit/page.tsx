@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectForm } from "@/components/builder/ProjectForm";
+import { listActiveCities } from "@/server/actions/cities";
 
 interface Props {
   params: Promise<{ projectId: string }>;
@@ -20,6 +21,8 @@ export default async function EditProjectPage({ params }: Props) {
 
   if (!project || project.builderId !== session.userId) notFound();
   if (project.status === "ARCHIVED") notFound();
+
+  const cities = await listActiveCities();
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8">
@@ -59,6 +62,7 @@ export default async function EditProjectPage({ params }: Props) {
           <ProjectForm
             mode="edit"
             projectId={project.id}
+            cities={cities}
             initial={{
               name: project.name,
               city: project.city ?? "",

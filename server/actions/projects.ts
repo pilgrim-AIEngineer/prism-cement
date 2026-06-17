@@ -11,11 +11,21 @@ import { fail } from "@/server/actions/utils";
 
 const projectInputSchema = z.object({
   name: z.string().trim().min(1, "Project name is required").max(200),
-  city: z.string().trim().max(100).optional(),
+  city: z.string().trim().min(1, "Select a launch city").max(100),
   type: z.string().trim().max(100).optional(),
 });
 
 type ProjectInput = z.infer<typeof projectInputSchema>;
+
+// The dropdown is convenience; the server is the source of truth. A project's
+// city must match an active launch city (see server/actions/cities.ts).
+async function isActiveLaunchCity(name: string): Promise<boolean> {
+  const city = await db.city.findFirst({
+    where: { name, active: true },
+    select: { id: true },
+  });
+  return city !== null;
+}
 
 
 async function getVerifiedBuilderSession() {
@@ -46,13 +56,16 @@ export async function createProject(input: ProjectInput): Promise<ActionResult<{
   const builderId = auth.session.userId;
 
   // 3. No external ownership row to check — builder owns everything they create.
+  //    City must be an active launch city.
+  if (!(await isActiveLaunchCity(parsed.data.city))) return fail("Select a valid launch city");
+
   // 4+5. Mutate + writeAudit in one transaction.
   const project = await db.$transaction(async (tx) => {
     const p = await tx.project.create({
       data: {
         builderId,
         name: parsed.data.name,
-        city: parsed.data.city ?? null,
+        city: parsed.data.city,
         type: parsed.data.type ?? null,
         status: "DRAFT",
       },
@@ -74,7 +87,7 @@ export async function createProject(input: ProjectInput): Promise<ActionResult<{
 export async function updateProject(input: {
   projectId: string;
   name: string;
-  city?: string;
+  city: string;
   type?: string;
 }): Promise<ActionResult<{ id: string }>> {
   // 1. Zod validate
@@ -100,13 +113,22 @@ export async function updateProject(input: {
   }
   if (project.status === "ARCHIVED") return fail("Cannot edit an archived project");
 
+  // City must be an active launch city — unless it's unchanged (a previously valid
+  // city that has since been deactivated may be kept, just not newly selected).
+  if (
+    parsed.data.city !== project.city &&
+    !(await isActiveLaunchCity(parsed.data.city))
+  ) {
+    return fail("Select a valid launch city");
+  }
+
   // 4+5. Mutate + audit
   const updated = await db.$transaction(async (tx) => {
     const p = await tx.project.update({
       where: { id: parsed.data.projectId },
       data: {
         name: parsed.data.name,
-        city: parsed.data.city ?? null,
+        city: parsed.data.city,
         type: parsed.data.type ?? null,
       },
     });

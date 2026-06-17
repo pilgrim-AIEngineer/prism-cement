@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AccountStatusBanner } from "@/components/auth/AccountStatusBanner";
 import { ProjectForm } from "@/components/builder/ProjectForm";
+import { listActiveCities } from "@/server/actions/cities";
 
 export default async function NewProjectPage() {
   const session = await getSession();
@@ -14,6 +15,8 @@ export default async function NewProjectPage() {
     select: { status: true },
   });
   if (!user) redirect("/login");
+
+  const cities = await listActiveCities();
 
   if (user.status !== "VERIFIED") {
     return (
@@ -52,7 +55,7 @@ export default async function NewProjectPage() {
           </p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <ProjectForm mode="create" />
+          <ProjectForm mode="create" cities={cities} />
         </div>
       </div>
     </div>

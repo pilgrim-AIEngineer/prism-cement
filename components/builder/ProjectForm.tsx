@@ -15,7 +15,9 @@ interface EditMode {
   initial: { name: string; city: string; type: string };
 }
 
-type Props = CreateMode | EditMode;
+type City = { id: string; name: string };
+
+type Props = (CreateMode | EditMode) & { cities: City[] };
 
 export function ProjectForm(props: Props) {
   const router = useRouter();
@@ -29,6 +31,14 @@ export function ProjectForm(props: Props) {
   const [city, setCity] = useState(initial.city);
   const [type, setType] = useState(initial.type);
 
+  // The project's current city may have since been deactivated; keep it
+  // selectable so editing doesn't silently drop a valid historical value.
+  const cityOptions = [...props.cities];
+  if (initial.city && !cityOptions.some((c) => c.name === initial.city)) {
+    cityOptions.push({ id: `current-${initial.city}`, name: initial.city });
+  }
+  const noCities = cityOptions.length === 0;
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -36,7 +46,7 @@ export function ProjectForm(props: Props) {
     startTransition(async () => {
       const payload = {
         name,
-        city: city.trim() || undefined,
+        city,
         type: type.trim() || undefined,
       };
 
@@ -101,16 +111,30 @@ export function ProjectForm(props: Props) {
       <FormField
         id="project-city"
         label="City"
-        hint="Optional · Shown to vendors as a general zone"
+        required
+        hint={
+          noCities
+            ? "No launch cities are available yet — contact your admin."
+            : "Shown to vendors as a general zone"
+        }
       >
-        <input
+        <select
           id="project-city"
-          type="text"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          placeholder="e.g. Mumbai"
-          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-        />
+          required
+          disabled={noCities}
+          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="" disabled>
+            Select a city
+          </option>
+          {cityOptions.map((c) => (
+            <option key={c.id} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </FormField>
 
       <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-zinc-700">
@@ -123,7 +147,7 @@ export function ProjectForm(props: Props) {
         </button>
         <button
           type="submit"
-          disabled={isPending || !name.trim()}
+          disabled={isPending || !name.trim() || !city}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-accent px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-accent-h disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? (

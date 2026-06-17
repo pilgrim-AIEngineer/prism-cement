@@ -142,6 +142,18 @@ model VendorCategory {
   @@map("vendor_categories")
 }
 
+// Launch cities — Admin-managed allow-list for project locations.
+// Soft enable/disable via `active` so historical project city strings stay valid.
+model City {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("cities")
+}
+
 // ----------------------------- Dynamic Forms -----------------------------
 
 // Versioned. Editing creates a NEW version; delete = ARCHIVED (soft).

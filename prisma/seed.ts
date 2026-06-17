@@ -10,6 +10,13 @@ const CATEGORIES = [
   { name: "TMT Bars", slug: "tmt-bars" },
 ] as const;
 
+const CITIES = [
+  { name: "Mumbai", slug: "mumbai" },
+  { name: "Pune", slug: "pune" },
+  { name: "Bengaluru", slug: "bengaluru" },
+  { name: "Hyderabad", slug: "hyderabad" },
+] as const;
+
 // ADMIN never self-registers (CLAUDE.md non-negotiable, PRD §2) — the only way
 // to get one is to seed it directly, pre-verified, so it can sign in via the
 // normal mock-OTP flow and reach /admin immediately.
@@ -24,6 +31,15 @@ async function main() {
     });
   }
   console.log(`Seeded ${CATEGORIES.length} categories`);
+
+  for (const city of CITIES) {
+    await db.city.upsert({
+      where: { slug: city.slug },
+      update: { name: city.name },
+      create: city,
+    });
+  }
+  console.log(`Seeded ${CITIES.length} launch cities`);
 
   const admin = await db.user.upsert({
     where: { phone: SEED_ADMIN_PHONE },
