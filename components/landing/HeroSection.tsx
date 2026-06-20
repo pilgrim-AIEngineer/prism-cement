@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface HeroSectionProps {
   onLoginClick: () => void;
 }
@@ -10,8 +12,27 @@ const PROOF_POINTS = [
 
 export function HeroSection({ onLoginClick }: HeroSectionProps) {
   return (
-    <section className="bg-hero-radial relative overflow-hidden px-4 py-20 sm:py-28">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+    <section className="relative overflow-hidden bg-brand-bg px-4 py-20 sm:py-28">
+      {/* Construction job-site backdrop. The photo renders at full strength;
+          a single left-heavy gradient keeps the copy crisp while letting the
+          job-site stay visible on the right, behind the quote card. */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <Image
+          src="/assets/hero_background.png"
+          alt=""
+          fill
+          priority
+          className="object-cover object-right"
+        />
+        {/* protect the copy (left) → reveal the photo (right) */}
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-bg via-brand-bg/88 to-brand-bg/45" />
+        {/* gentle bottom/top blend into the cream section */}
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-bg/70 via-transparent to-brand-bg/55" />
+        {/* warm accent glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(55rem_38rem_at_90%_0%,rgba(200,90,42,0.16),transparent_60%)]" />
+      </div>
+
+      <div className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
         {/* Left — copy */}
         <div className="text-center lg:text-left">
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-card px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-brand-accent">

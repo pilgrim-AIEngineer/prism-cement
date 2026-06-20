@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const BADGES = [
   {
     label: "Lower prices",
@@ -30,8 +32,20 @@ const BADGES = [
 
 export function TrustSection() {
   return (
-    <section id="why-us" className="bg-brand-footer py-24 px-4">
-      <div className="max-w-4xl mx-auto text-center">
+    <section id="why-us" className="relative overflow-hidden py-24 px-4">
+      {/* Real job-site photo behind a deep warm overlay — the page's
+          authoritative, cinematic anchor. Text stays fully legible. */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/assets/hero_background.png"
+          alt=""
+          fill
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-footer/95 via-brand-footer/88 to-brand-footer/96" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl mx-auto text-center">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">
           Why BuildCityBulk
         </span>

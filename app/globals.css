@@ -35,14 +35,6 @@
   }
 }
 
-/* Soft warm radial wash used behind the hero. */
-.bg-hero-radial {
-  background-color: var(--color-brand-bg);
-  background-image:
-    radial-gradient(60rem 40rem at 85% -10%, rgba(200, 90, 42, 0.16), transparent 60%),
-    radial-gradient(50rem 35rem at 0% 110%, rgba(238, 205, 181, 0.55), transparent 55%);
-}
-
 /* Pause marquees for users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee {
