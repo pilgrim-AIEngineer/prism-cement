@@ -13,7 +13,8 @@ export function BuilderShell({ children, builderName, builderPhone, unreadNotifC
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-stone-50 dark:bg-zinc-950">
+    <div className="relative flex min-h-screen bg-stone-50/80 dark:bg-zinc-950">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-bg/50 via-stone-50/50 to-transparent dark:from-brand-accent/5 dark:via-zinc-950/50 dark:to-transparent" />
       {sidebarOpen && (
         <button
           type="button"
@@ -38,7 +39,7 @@ export function BuilderShell({ children, builderName, builderPhone, unreadNotifC
 
       <div className="flex min-w-0 flex-1 flex-col md:pl-64">
         {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 md:hidden dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-200/50 bg-white/80 px-4 py-3 backdrop-blur-md md:hidden dark:border-zinc-800/50 dark:bg-zinc-950/80">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}

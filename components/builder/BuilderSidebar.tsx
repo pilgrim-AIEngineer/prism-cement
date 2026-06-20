@@ -98,10 +98,10 @@ export function BuilderSidebar({ builderName, builderPhone, unreadNotifCount, on
     : "B";
 
   return (
-    <aside className="flex h-full flex-col overflow-hidden border-r border-stone-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <aside className="flex h-full flex-col overflow-hidden border-r border-stone-200/50 bg-white/80 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-stone-200 px-5 dark:border-zinc-800">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent text-white shadow-sm">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-stone-200/50 px-5 dark:border-zinc-800/50">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-accent to-brand-accent-h text-white shadow-sm shadow-brand-accent/20">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <rect width="16" height="20" x="4" y="2" rx="2" />
             <path d="M9 22v-4h6v4" />
@@ -134,10 +134,10 @@ export function BuilderSidebar({ builderName, builderPhone, unreadNotifCount, on
                       <Link
                         href={item.href}
                         onClick={onClose}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                           isActive
-                            ? "bg-brand-accent text-white shadow-sm"
-                            : "text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100"
+                            ? "bg-gradient-to-r from-brand-accent to-brand-accent-h text-white shadow-md shadow-brand-accent/20"
+                            : "text-stone-600 hover:bg-stone-100/80 hover:text-stone-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
                         }`}
                       >
                         <span className="h-4 w-4 shrink-0">{item.icon}</span>
@@ -162,9 +162,9 @@ export function BuilderSidebar({ builderName, builderPhone, unreadNotifCount, on
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-stone-200 px-4 py-4 dark:border-zinc-800">
+      <div className="shrink-0 border-t border-stone-200/50 px-4 py-4 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-border bg-brand-bg dark:border-zinc-700 dark:bg-zinc-800">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-border bg-gradient-to-br from-brand-bg to-white dark:border-zinc-700/50 dark:from-zinc-800 dark:to-zinc-900 shadow-sm">
             <span className="text-xs font-bold text-brand-accent">{initials}</span>
           </div>
           <div className="min-w-0 flex-1">

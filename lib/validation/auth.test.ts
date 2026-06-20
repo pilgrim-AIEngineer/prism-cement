@@ -57,6 +57,44 @@ describe("vendorProfileSchema", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("rejects a malformed GST/PAN with a field-specific message", () => {
+    const badGst = vendorProfileSchema.safeParse({
+      name: "Vik Traders",
+      company: "Vik Traders Pvt Ltd",
+      gst: "NOTAGST",
+    });
+    expect(badGst.success).toBe(false);
+    if (!badGst.success) {
+      expect(badGst.error.issues[0]?.path[0]).toBe("gst");
+      expect(badGst.error.issues[0]?.message).toContain("GSTIN");
+    }
+
+    const badPan = vendorProfileSchema.safeParse({
+      name: "Vik Traders",
+      company: "Vik Traders Pvt Ltd",
+      pan: "12345",
+    });
+    expect(badPan.success).toBe(false);
+    if (!badPan.success) {
+      expect(badPan.error.issues[0]?.path[0]).toBe("pan");
+      expect(badPan.error.issues[0]?.message).toContain("PAN");
+    }
+  });
+
+  it("normalizes a lower-case GST/PAN to upper case", () => {
+    const result = vendorProfileSchema.safeParse({
+      name: "Vik Traders",
+      company: "Vik Traders Pvt Ltd",
+      gst: "27aaapl1234c1zv",
+      pan: "aaapl1234c",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.gst).toBe("27AAAPL1234C1ZV");
+      expect(result.data.pan).toBe("AAAPL1234C");
+    }
+  });
 });
 
 describe("completeOnboardingSchema", () => {

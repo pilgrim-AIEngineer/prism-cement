@@ -47,13 +47,27 @@ export default async function BuilderDashboardPage() {
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
-          Welcome back, {firstName}
-        </h1>
-        {builderProfile?.company && (
-          <p className="mt-1 text-sm text-stone-500 dark:text-zinc-400">{builderProfile.company}</p>
-        )}
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/60">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-brand-bg/50 blur-3xl dark:bg-brand-accent/5" />
+        
+        <div className="relative z-10">
+          <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-accent">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-accent opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-accent"></span>
+            </span>
+            Overview
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+            Welcome back, {firstName}
+          </h1>
+          {builderProfile?.company && (
+            <p className="mt-2 max-w-xl text-base text-stone-500 dark:text-zinc-400">
+              Here's what's happening with <span className="font-semibold text-stone-800 dark:text-zinc-200">{builderProfile.company}</span> today.
+            </p>
+          )}
+        </div>
       </div>
 
       <AccountStatusBanner status={user.status} />
@@ -69,16 +83,16 @@ export default async function BuilderDashboardPage() {
           </div>
 
           {/* Recent projects */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-stone-900 dark:text-zinc-100">
+          <section className="flex flex-col gap-5">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
                 Recent projects
               </h2>
               <Link
                 href="/builder/projects"
-                className="text-sm font-medium text-brand-accent hover:text-brand-accent-h"
+                className="text-sm font-semibold text-brand-accent transition-colors hover:text-brand-accent-h"
               >
-                View all
+                View all &rarr;
               </Link>
             </div>
 
@@ -90,39 +104,45 @@ export default async function BuilderDashboardPage() {
                   <Link
                     key={p.id}
                     href={`/builder/projects/${p.id}`}
-                    className="group flex items-center justify-between gap-4 rounded-xl border border-stone-200 bg-white px-5 py-4 shadow-sm transition-all hover:border-stone-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                    className="group relative overflow-hidden rounded-2xl border border-stone-200/50 bg-white/60 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-border/80 hover:shadow-xl hover:shadow-brand-accent/5 dark:border-zinc-800/50 dark:bg-zinc-900/60 dark:hover:border-brand-accent/30"
                   >
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <StatusDot status={p.status} />
-                        <span className="font-semibold text-stone-900 truncate dark:text-zinc-100">
-                          {p.name}
-                        </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-brand-bg/0 via-brand-bg/0 to-brand-bg/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:to-brand-accent/10" />
+                    <div className="relative z-10 flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 flex-1 flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <StatusBadge status={p.status} />
+                          <span className="truncate font-semibold text-stone-900 dark:text-zinc-100">
+                            {p.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-stone-500 dark:text-zinc-400">
+                          <span className="flex items-center gap-1.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
+                            </svg>
+                            {[p.type, p.city].filter(Boolean).join(" · ") || "No location"}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                            </svg>
+                            {p._count.requirements} requirement{p._count.requirements !== 1 ? "s" : ""}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm text-stone-500 dark:text-zinc-400">
-                        {[p.type, p.city].filter(Boolean).join(" · ") || "No location"}
-                        {" · "}
-                        {p._count.requirements} requirement{p._count.requirements !== 1 ? "s" : ""}
-                      </span>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-400 transition-all duration-300 group-hover:bg-brand-accent group-hover:text-white dark:bg-zinc-800 dark:group-hover:bg-brand-accent">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
+                      </div>
                     </div>
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5"
-                    >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
                   </Link>
                 ))}
                 <Link
                   href="/builder/projects/new"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 bg-white px-5 py-4 text-sm font-medium text-stone-500 transition-colors hover:border-brand-accent hover:text-brand-accent dark:border-zinc-700 dark:bg-zinc-900"
+                  className="group flex items-center justify-center gap-2 rounded-2xl border border-dashed border-stone-300 bg-transparent px-5 py-4 text-sm font-medium text-stone-500 transition-all hover:border-brand-accent hover:bg-brand-accent/5 hover:text-brand-accent dark:border-zinc-700 dark:hover:border-brand-accent dark:hover:bg-brand-accent/10"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform duration-300 group-hover:scale-110">
                     <path d="M5 12h14" />
                     <path d="M12 5v14" />
                   </svg>
@@ -152,28 +172,31 @@ function StatCard({
 }) {
   return (
     <div
-      className={`flex flex-col gap-3 rounded-xl border p-5 shadow-sm ${
+      className={`group relative overflow-hidden rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
         accent
-          ? "border-brand-border bg-brand-bg dark:border-zinc-800 dark:bg-zinc-900"
+          ? "border-brand-border/60 bg-brand-bg/50 hover:shadow-brand-accent/10 dark:border-brand-accent/20 dark:bg-brand-accent/5"
           : warm
-            ? "border-amber-100 bg-amber-50 dark:border-zinc-800 dark:bg-zinc-900"
-            : "border-stone-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-      }`}
+            ? "border-amber-200/60 bg-amber-50/50 hover:shadow-amber-500/10 dark:border-amber-500/20 dark:bg-amber-500/5"
+            : "border-stone-200/50 bg-white/60 hover:shadow-stone-200/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 dark:hover:shadow-black/50"
+      } backdrop-blur-xl`}
     >
-      <div
-        className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-          accent
-            ? "bg-brand-accent text-white"
-            : warm
-              ? "bg-amber-100 text-amber-700"
-              : "bg-stone-100 text-stone-600 dark:bg-zinc-800 dark:text-zinc-400"
-        }`}
-      >
-        {icon}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-white/5" />
+      <div className="relative z-10 flex items-start justify-between">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner ${
+            accent
+              ? "bg-gradient-to-br from-brand-accent to-brand-accent-h text-white"
+              : warm
+                ? "bg-gradient-to-br from-amber-400 to-amber-600 text-white"
+                : "bg-gradient-to-br from-stone-100 to-stone-200 text-stone-600 dark:from-zinc-800 dark:to-zinc-900 dark:text-zinc-400"
+          }`}
+        >
+          {icon}
+        </div>
       </div>
-      <div>
-        <p className="text-2xl font-bold text-stone-900 dark:text-zinc-100">{value}</p>
-        <p className="text-xs font-medium text-stone-500 dark:text-zinc-400">{label}</p>
+      <div className="relative z-10 mt-5">
+        <p className="text-4xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">{value}</p>
+        <p className="mt-1 text-sm font-semibold text-stone-500 dark:text-zinc-400">{label}</p>
       </div>
     </div>
   );
@@ -181,44 +204,53 @@ function StatCard({
 
 function EmptyProjectsCTA() {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center dark:border-zinc-700 dark:bg-zinc-900">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-bg text-brand-accent">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
-          <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />
-          <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
-          <path d="M4 15v-3a6 6 0 0 1 6-6" />
-          <path d="M14 6a6 6 0 0 1 6 6v3" />
-        </svg>
+    <div className="relative overflow-hidden rounded-3xl border border-stone-200/50 bg-white/60 px-6 py-16 text-center backdrop-blur-md dark:border-zinc-800/50 dark:bg-zinc-900/60">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="relative z-10 flex flex-col items-center gap-5">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-bg to-brand-border text-brand-accent shadow-inner dark:from-zinc-800 dark:to-zinc-700">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
+            <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />
+            <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
+            <path d="M4 15v-3a6 6 0 0 1 6-6" />
+            <path d="M14 6a6 6 0 0 1 6 6v3" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-lg font-semibold text-stone-900 dark:text-zinc-100">No projects yet</p>
+          <p className="mt-1.5 max-w-sm text-sm text-stone-500 dark:text-zinc-400">
+            Create your first project to start organizing material requirements and receiving bids from top vendors.
+          </p>
+        </div>
+        <Link
+          href="/builder/projects/new"
+          className="group relative mt-2 inline-flex items-center gap-2 overflow-hidden rounded-xl bg-brand-accent px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-accent/25 transition-all hover:-translate-y-0.5 hover:shadow-brand-accent/40"
+        >
+          <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 relative z-10">
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+          <span className="relative z-10">Create first project</span>
+        </Link>
       </div>
-      <div>
-        <p className="font-semibold text-stone-900 dark:text-zinc-100">No projects yet</p>
-        <p className="mt-1 text-sm text-stone-500 dark:text-zinc-400">
-          Create your first project to start adding material requirements.
-        </p>
-      </div>
-      <Link
-        href="/builder/projects/new"
-        className="inline-flex items-center gap-2 rounded-lg bg-brand-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-accent-h"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-          <path d="M5 12h14" />
-          <path d="M12 5v14" />
-        </svg>
-        Create first project
-      </Link>
     </div>
   );
 }
 
-function StatusDot({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    DRAFT: "bg-stone-400",
-    ACTIVE: "bg-green-500",
-    COMPLETED: "bg-blue-500",
-    ARCHIVED: "bg-stone-300",
+function StatusBadge({ status }: { status: string }) {
+  const configs: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+    DRAFT: { bg: "bg-stone-100 dark:bg-zinc-800", text: "text-stone-600 dark:text-zinc-300", dot: "bg-stone-400", label: "Draft" },
+    ACTIVE: { bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500", label: "Active" },
+    COMPLETED: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", dot: "bg-blue-500", label: "Completed" },
+    ARCHIVED: { bg: "bg-stone-100 dark:bg-zinc-800", text: "text-stone-500 dark:text-zinc-400", dot: "bg-stone-300", label: "Archived" },
   };
+  const config = configs[status] ?? configs.DRAFT;
+  
   return (
-    <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${colors[status] ?? "bg-stone-400"}`} />
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold ${config.bg} ${config.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
   );
 }
 
