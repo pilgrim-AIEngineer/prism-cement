@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { CONTACT } from "@/lib/landing/contact";
 
 const LINK_COLUMNS = [
   {
@@ -14,7 +15,7 @@ const LINK_COLUMNS = [
     heading: "Company",
     links: [
       { label: "About", href: "#" },
-      { label: "Contact", href: "#" },
+      { label: "Contact", href: "#contact" },
     ],
   },
   {
@@ -47,6 +48,23 @@ export function Footer() {
               Verified suppliers compete for your order so you always get the
               best rate.
             </p>
+
+            <div id="contact" className="mt-5 flex flex-col gap-2">
+              <a
+                href={CONTACT.phoneHref}
+                className="inline-flex items-center gap-2 text-sm font-medium text-white transition-colors hover:text-brand-accent"
+              >
+                <span aria-hidden>📞</span>
+                {CONTACT.phone}
+              </a>
+              <a
+                href={CONTACT.emailHref}
+                className="inline-flex items-center gap-2 text-sm font-medium text-white transition-colors hover:text-brand-accent"
+              >
+                <span aria-hidden>✉️</span>
+                {CONTACT.email}
+              </a>
+            </div>
           </div>
 
           {LINK_COLUMNS.map((col) => (

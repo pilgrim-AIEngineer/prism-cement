@@ -64,7 +64,7 @@ export default async function BuilderDashboardPage() {
           </h1>
           {builderProfile?.company && (
             <p className="mt-2 max-w-xl text-base text-stone-500 dark:text-zinc-400">
-              Here's what's happening with <span className="font-semibold text-stone-800 dark:text-zinc-200">{builderProfile.company}</span> today.
+              Here&apos;s what&apos;s happening with <span className="font-semibold text-stone-800 dark:text-zinc-200">{builderProfile.company}</span> today.
             </p>
           )}
         </div>

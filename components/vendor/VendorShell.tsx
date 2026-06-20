@@ -13,7 +13,8 @@ export function VendorShell({ children, vendorName, vendorPhone, unreadNotifCoun
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="relative flex min-h-screen bg-stone-50/80 dark:bg-zinc-950">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-bg/50 via-stone-50/50 to-transparent dark:from-brand-accent/5 dark:via-zinc-950/50 dark:to-transparent" />
       {sidebarOpen && (
         <button
           type="button"
@@ -38,11 +39,11 @@ export function VendorShell({ children, vendorName, vendorPhone, unreadNotifCoun
 
       <div className="flex min-w-0 flex-1 flex-col md:pl-64">
         {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3 md:hidden dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-200/50 bg-white/80 px-4 py-3 backdrop-blur-md md:hidden dark:border-zinc-800/50 dark:bg-zinc-950/80">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
             aria-label="Open navigation menu"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -58,8 +59,8 @@ export function VendorShell({ children, vendorName, vendorPhone, unreadNotifCoun
                 <path d="M9 22v-4h6v4" />
               </svg>
             </div>
-            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">BuildBid</span>
-            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+            <span className="text-sm font-bold text-stone-900 dark:text-zinc-100">BuildBid</span>
+            <span className="rounded-full bg-stone-900 px-2 py-0.5 text-[10px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
               Vendor
             </span>
           </div>

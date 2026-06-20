@@ -119,23 +119,35 @@ export default async function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-8 p-6">
       {/* Page header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {pendingCount > 0
-              ? `${pendingCount} verification${pendingCount !== 1 ? "s" : ""} need your attention.`
-              : "Everything's up to date."}
-          </p>
-        </div>
-        {awardedCount > 0 && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-center dark:border-green-900/40 dark:bg-green-950/20">
-            <p className="text-xs text-green-600 dark:text-green-400">Awarded</p>
-            <p className="text-xl font-bold text-green-700 dark:text-green-300">{awardedCount}</p>
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/60">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-brand-bg/50 blur-3xl dark:bg-brand-accent/5" />
+
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-accent">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-accent opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-accent"></span>
+              </span>
+              Overview
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+              Dashboard
+            </h1>
+            <p className="mt-2 max-w-xl text-base text-stone-500 dark:text-zinc-400">
+              {pendingCount > 0
+                ? `${pendingCount} verification${pendingCount !== 1 ? "s" : ""} need your attention.`
+                : "Everything's up to date."}
+            </p>
           </div>
-        )}
+          {awardedCount > 0 && (
+            <div className="shrink-0 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-center dark:border-green-900/40 dark:bg-green-950/20">
+              <p className="text-xs text-green-600 dark:text-green-400">Awarded</p>
+              <p className="text-xl font-bold text-green-700 dark:text-green-300">{awardedCount}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats grid */}

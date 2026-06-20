@@ -1,3 +1,5 @@
+import { CONTACT } from "@/lib/landing/contact";
+
 interface CtaSectionProps {
   onLoginClick: () => void;
 }
@@ -20,6 +22,26 @@ export function CtaSection({ onLoginClick }: CtaSectionProps) {
         >
           Get bulk quotes
         </button>
+
+        <p className="mt-8 text-sm font-medium text-white/85">
+          Prefer to talk? Reach us directly
+        </p>
+        <div className="mt-3 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+          <a
+            href={CONTACT.phoneHref}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-5 py-2.5 text-base font-semibold text-white ring-1 ring-white/25 transition-colors hover:bg-white/20"
+          >
+            <span aria-hidden>📞</span>
+            {CONTACT.phone}
+          </a>
+          <a
+            href={CONTACT.emailHref}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-5 py-2.5 text-base font-semibold text-white ring-1 ring-white/25 transition-colors hover:bg-white/20"
+          >
+            <span aria-hidden>✉️</span>
+            {CONTACT.email}
+          </a>
+        </div>
       </div>
     </section>
   );

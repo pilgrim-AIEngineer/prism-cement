@@ -122,10 +122,10 @@ export function VendorSidebar({ vendorName, vendorPhone, unreadNotifCount, onClo
     : "V";
 
   return (
-    <aside className="flex h-full flex-col overflow-hidden border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <aside className="flex h-full flex-col overflow-hidden border-r border-stone-200/50 bg-white/80 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-zinc-200 px-5 dark:border-zinc-800">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent text-white shadow-sm">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-stone-200/50 px-5 dark:border-zinc-800/50">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-accent to-brand-accent-h text-white shadow-sm shadow-brand-accent/20">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <rect width="16" height="20" x="4" y="2" rx="2" />
             <path d="M9 22v-4h6v4" />
@@ -133,8 +133,8 @@ export function VendorSidebar({ vendorName, vendorPhone, unreadNotifCount, onClo
           </svg>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold leading-none text-zinc-900 dark:text-zinc-100">BuildBid</p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+          <p className="truncate text-sm font-bold leading-none text-stone-900 dark:text-zinc-100">BuildBid</p>
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-zinc-500">
             Vendor Portal
           </p>
         </div>
@@ -145,7 +145,7 @@ export function VendorSidebar({ vendorName, vendorPhone, unreadNotifCount, onClo
         <ul className="space-y-6">
           {navGroups.map((group) => (
             <li key={group.label}>
-              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-zinc-500">
                 {group.label}
               </p>
               <ul className="space-y-0.5">
@@ -158,10 +158,10 @@ export function VendorSidebar({ vendorName, vendorPhone, unreadNotifCount, onClo
                       <Link
                         href={item.href}
                         onClick={onClose}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                           isActive
-                            ? "bg-brand-accent text-white shadow-sm"
-                            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100"
+                            ? "bg-gradient-to-r from-brand-accent to-brand-accent-h text-white shadow-md shadow-brand-accent/20"
+                            : "text-stone-600 hover:bg-stone-100/80 hover:text-stone-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
                         }`}
                       >
                         <span className="h-4 w-4 shrink-0">{item.icon}</span>
@@ -186,22 +186,22 @@ export function VendorSidebar({ vendorName, vendorPhone, unreadNotifCount, onClo
       </nav>
 
       {/* Footer: vendor profile + sign-out */}
-      <div className="shrink-0 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
+      <div className="shrink-0 border-t border-stone-200/50 px-4 py-4 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-border bg-brand-bg dark:border-zinc-700 dark:bg-zinc-800">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-border bg-gradient-to-br from-brand-bg to-white dark:border-zinc-700/50 dark:from-zinc-800 dark:to-zinc-900 shadow-sm">
             <span className="text-xs font-bold text-brand-accent">{initials}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+            <p className="truncate text-xs font-semibold text-stone-900 dark:text-zinc-100">
               {vendorName ?? "Vendor"}
             </p>
-            <p className="truncate text-[10px] text-zinc-500 dark:text-zinc-400">{vendorPhone}</p>
+            <p className="truncate text-[10px] text-stone-500 dark:text-zinc-400">{vendorPhone}</p>
           </div>
           <button
             onClick={handleSignOut}
             disabled={isPending}
             title="Sign out"
-            className="shrink-0 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="shrink-0 rounded-md p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             <IcLogOut />
           </button>

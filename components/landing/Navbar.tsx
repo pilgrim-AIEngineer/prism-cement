@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { CONTACT } from "@/lib/landing/contact";
 
 interface NavbarProps {
   onLoginClick: () => void;
@@ -14,6 +15,24 @@ const NAV_LINKS = [
 export function Navbar({ onLoginClick }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 bg-brand-bg/90 backdrop-blur-sm border-b border-brand-border">
+      <div className="bg-brand-footer text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 py-1.5 text-xs font-medium sm:justify-end">
+          <a
+            href={CONTACT.phoneHref}
+            className="inline-flex items-center gap-1.5 text-white/80 transition-colors hover:text-brand-accent"
+          >
+            <span aria-hidden>📞</span>
+            {CONTACT.phone}
+          </a>
+          <a
+            href={CONTACT.emailHref}
+            className="inline-flex items-center gap-1.5 text-white/80 transition-colors hover:text-brand-accent"
+          >
+            <span aria-hidden>✉️</span>
+            {CONTACT.email}
+          </a>
+        </div>
+      </div>
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2.5">
           <Image

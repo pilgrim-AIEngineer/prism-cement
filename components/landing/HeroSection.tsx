@@ -105,9 +105,9 @@ export function HeroSection({ onLoginClick }: HeroSectionProps) {
  */
 function QuoteCard() {
   const quotes = [
-    { name: "Supplier A", price: "₹385", best: false },
-    { name: "Supplier B", price: "₹372", best: false },
-    { name: "Supplier C", price: "₹358", best: true },
+    { name: "Supplier A", price: "₹3xx", best: false },
+    { name: "Supplier B", price: "₹3xx", best: false },
+    { name: "Supplier C", price: "₹2xx", best: true },
   ];
 
   return (

@@ -13,16 +13,24 @@ import {
   Activity
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import type { UserStatus } from "@prisma/client";
+
+type RecentOpportunity = {
+  id: string;
+  anonCode: string;
+  createdAt: Date;
+  category: { name: string } | null;
+};
 
 type DashboardClientProps = {
-  userStatus: any;
+  userStatus: UserStatus;
   companyName: string;
   approvedCount: number;
   openReqsCount: number;
   activeBidsCount: number;
   isOperational: boolean;
   isBlocked: boolean;
-  recentOpportunities: any[];
+  recentOpportunities: RecentOpportunity[];
 };
 
 const containerVariants = {
@@ -53,21 +61,28 @@ export function DashboardClient({
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-10 max-w-7xl mx-auto w-full">
       {/* Hero Section */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-8 sm:p-12 text-white shadow-xl"
+        className="relative overflow-hidden rounded-3xl border border-stone-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/60"
       >
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-indigo-400/20 blur-2xl"></div>
-        
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-accent/10 blur-3xl"></div>
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-brand-bg/50 blur-3xl dark:bg-brand-accent/5"></div>
+
         <div className="relative z-10">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-accent">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-accent opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-accent"></span>
+            </span>
+            Overview
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
             Welcome back, {companyName}
           </h1>
-          <p className="mt-3 text-indigo-100 max-w-2xl text-lg">
-            {isOperational 
+          <p className="mt-2 max-w-xl text-base text-stone-500 dark:text-zinc-400">
+            {isOperational
               ? "Here's what's happening with your bids and opportunities today."
               : "Complete your profile verification to start bidding on opportunities."}
           </p>
@@ -102,8 +117,8 @@ export function DashboardClient({
               label="Open Requirements"
               value={openReqsCount}
               hint={!isOperational ? "Unlocks when verified" : "Available to bid"}
-              icon={<Briefcase className="h-6 w-6 text-indigo-500" />}
-              gradient="from-indigo-500/10 to-violet-500/5"
+              icon={<Briefcase className="h-6 w-6 text-brand-accent" />}
+              gradient="from-brand-accent/10 to-brand-accent-h/5"
             />
             <StatCard
               label="Active Bids"
@@ -118,7 +133,7 @@ export function DashboardClient({
             {/* Quick Actions */}
             <div className="lg:col-span-2 flex flex-col gap-4">
               <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-indigo-500" />
+                <Briefcase className="h-5 w-5 text-brand-accent" />
                 Quick Actions
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -130,7 +145,7 @@ export function DashboardClient({
                       ? `${openReqsCount} open in your categories`
                       : "Verify account to view"
                   }
-                  icon={<Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+                  icon={<Briefcase className="h-6 w-6 text-brand-accent dark:text-brand-accent" />}
                 />
                 <QuickLink
                   href="/vendor/bids"
@@ -165,7 +180,7 @@ export function DashboardClient({
             {isOperational && (
               <div className="flex flex-col gap-4">
                 <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-indigo-500" />
+                  <Clock className="h-5 w-5 text-brand-accent" />
                   Recent Opportunities
                 </h2>
                 <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden shadow-sm">
@@ -178,14 +193,14 @@ export function DashboardClient({
                           className="group p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                         >
                           <div className="flex justify-between items-start mb-1">
-                            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-medium text-brand-accent dark:text-brand-accent bg-brand-accent-soft dark:bg-brand-accent/10 px-2 py-0.5 rounded-full">
                               {req.category?.name || "General"}
                             </span>
                             <span className="text-[10px] text-zinc-500">
                               {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
                             </span>
                           </div>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-brand-accent dark:group-hover:text-brand-accent transition-colors">
                             {req.anonCode}
                           </p>
                           <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
@@ -195,7 +210,7 @@ export function DashboardClient({
                       ))}
                       <Link 
                         href="/vendor/feed"
-                        className="p-3 text-center text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                        className="p-3 text-center text-xs font-medium text-brand-accent hover:text-brand-accent-h dark:text-brand-accent dark:hover:text-brand-accent hover:bg-brand-accent-soft dark:hover:bg-brand-accent/10 transition-colors"
                       >
                         View all open requirements
                       </Link>
@@ -273,20 +288,20 @@ function QuickLink({
     <motion.div variants={itemVariants}>
       <Link
         href={href}
-        className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 transition-all hover:border-indigo-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-indigo-700"
+        className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 transition-all hover:border-brand-border hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-brand-accent/40"
       >
-        <div className="flex-shrink-0 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 group-hover:scale-110 transition-transform duration-300">
+        <div className="flex-shrink-0 p-3 rounded-xl bg-brand-accent-soft dark:bg-brand-accent/10 group-hover:scale-110 transition-transform duration-300">
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-zinc-900 transition-colors group-hover:text-indigo-600 dark:text-zinc-100 dark:group-hover:text-indigo-400">
+          <p className="text-sm font-bold text-zinc-900 transition-colors group-hover:text-brand-accent dark:text-zinc-100 dark:group-hover:text-brand-accent">
             {title}
           </p>
           <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
             {description}
           </p>
         </div>
-        <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition-all group-hover:text-indigo-500 group-hover:translate-x-1 dark:text-zinc-600" />
+        <ChevronRight className="h-5 w-5 shrink-0 text-zinc-300 transition-all group-hover:text-brand-accent group-hover:translate-x-1 dark:text-zinc-600" />
       </Link>
     </motion.div>
   );
