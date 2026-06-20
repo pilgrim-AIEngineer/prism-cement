@@ -16,6 +16,7 @@ Set these on your Vercel project (or equivalent):
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ (for uploads) | Your Supabase project URL, e.g. `https://xxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ (for uploads) | Service role key from Supabase → Settings → API. Keep secret — never expose client-side. |
 | `STORAGE_BUCKET` | optional | Storage bucket name (default: `requirement-files`) |
+| `BRAND_LOGOS_BUCKET` | optional | **Public** bucket for landing-page brand logos (default: `brand-logos`) |
 | `SHOW_BID_COUNT` | optional | Set to `true` to show builders a bid count. Default: `false` (off). |
 | `SEED_ADMIN_PHONE` | optional | Override admin phone for the seed script. Default: `9999999999` |
 
@@ -57,6 +58,14 @@ Default OTP: `123456` (mock — never deploy real SMS in v1 without updating `li
 ```
 
 4. Confirm: upload a test file and verify it is not publicly accessible via its direct URL.
+
+### Brand-logo bucket (public)
+
+1. Create a second bucket named `brand-logos` (or your `BRAND_LOGOS_BUCKET` value).
+2. Set this bucket to **Public** — landing-page logos are marketing assets served to every
+   visitor via stable, cacheable public URLs (not signed). No PII is ever stored here.
+3. The `*.supabase.co` public-storage host is already allow-listed in `next.config.ts`
+   (`images.remotePatterns`) so `next/image` can render the logos.
 
 ---
 
@@ -110,6 +119,7 @@ Run these manually after the first deploy:
 - [ ] Audit log shows correct before/after for at least one action
 - [ ] Uploading a JPEG to a file field succeeds and original filename is not retained
 - [ ] Suspending a user mid-session redirects them within 30 s
+- [ ] Admin → Brand Logos: pick a category, crop + add a logo; it shows on the public landing carousel
 
 ---
 

@@ -124,8 +124,25 @@ model Category {
   vendorCategories VendorCategory[]
   formTemplates    FormTemplate[]
   requirements     Requirement[]
+  brandLogos       BrandLogo[]
 
   @@map("categories")
+}
+
+// Brand logo tiles shown in the public landing-page carousels, one carousel per
+// category. Admin-managed marketing content — NOT blinded data (no serializer).
+model BrandLogo {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String // brand name — used as alt text
+  storagePath String   @map("storage_path") // path in the public brand-logos bucket
+  sortOrder   Int      @default(0) @map("sort_order")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([categoryId, active])
+  @@map("brand_logos")
 }
 
 // Per-category approval for a vendor. Vendor only sees requirements where verified = true.
