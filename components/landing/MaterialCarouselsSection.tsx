@@ -12,19 +12,19 @@ function CarouselRow({ carousel }: { carousel: MaterialCarousel }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-400">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-muted">
         {carousel.name}
       </h3>
       <div className="group relative overflow-hidden">
-        {/* edge fades */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#0f1115] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#0f1115] to-transparent" />
+        {/* edge fades — matched to the cream section background */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-brand-card to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-brand-card to-transparent" />
 
         <ul className="flex w-max animate-marquee gap-5 group-hover:[animation-play-state:paused]">
           {tiles.map((logo, index) => (
             <li
               key={`${logo.id}-${index}`}
-              className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/95 p-3 shadow-lg sm:h-28 sm:w-28"
+              className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-brand-border bg-white p-3 shadow-sm sm:h-28 sm:w-28"
             >
               <Image
                 src={logo.url}
@@ -45,14 +45,14 @@ export function MaterialCarouselsSection({ carousels }: { carousels: MaterialCar
   if (carousels.length === 0) return null;
 
   return (
-    <section className="bg-[#0f1115] px-4 py-20">
+    <section className="bg-brand-card px-4 py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Brands across every material
+          <h2 className="text-3xl font-extrabold tracking-tight text-brand-text sm:text-4xl">
+            Every brand you build with — at bulk rates
           </h2>
-          <p className="mt-3 text-base text-gray-400">
-            Trusted names our verified vendors supply, organised by material type.
+          <p className="mt-3 text-base text-brand-muted">
+            The trusted names you already specify, supplied in bulk and organised by material type.
           </p>
         </div>
 

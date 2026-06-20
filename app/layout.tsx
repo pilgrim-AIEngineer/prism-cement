@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,8 +13,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BuildCityBulk",
-  description: "India's trusted admin-brokered, double-blind building-material procurement platform",
+  title: {
+    default: "BuildCityBulk — Bulk building materials at the best price, delivered fast",
+    template: "%s · BuildCityBulk",
+  },
+  description:
+    "Stop overpaying for building materials. BuildCityBulk gets builders competitive bulk quotes from verified suppliers and delivers to site, fast — lower costs on every order.",
+  openGraph: {
+    title: "BuildCityBulk — Bulk building materials at the best price, delivered fast",
+    description:
+      "Competitive bulk quotes from verified suppliers, delivered to your site fast. Lower costs on every order, more margin on every project.",
+    type: "website",
+    siteName: "BuildCityBulk",
+    images: ["/assets/logo.png"],
+  },
+  twitter: {
+    card: "summary",
+    title: "BuildCityBulk — Bulk building materials at the best price, delivered fast",
+    description:
+      "Competitive bulk quotes from verified suppliers, delivered fast. Stop overpaying for building materials.",
+    images: ["/assets/logo.png"],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FDF0E8",
 };
 
 export default function RootLayout({

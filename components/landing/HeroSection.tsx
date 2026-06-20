@@ -1,91 +1,159 @@
-import Image from "next/image";
-
 interface HeroSectionProps {
   onLoginClick: () => void;
 }
 
+const PROOF_POINTS = [
+  "Competitive bulk pricing",
+  "Fast site delivery",
+  "Verified suppliers",
+];
+
 export function HeroSection({ onLoginClick }: HeroSectionProps) {
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 py-24 overflow-hidden">
-      {/* Background Image with Matte Polish (Overlay) */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/assets/hero_background.png"
-          alt="Building materials background"
-          fill
-          className="object-cover object-center"
-          priority
-        />
-        {/* Refined matte polish overlay - slightly lighter center, darker edges */}
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-[#0f1115]/90"></div>
-      </div>
-
-      <div className="relative z-10 max-w-5xl w-full text-center flex flex-col items-center">
-        {/* Logo - Floating in a soft frosted glass placeholder */}
-        <div className="mb-10 bg-white/80 backdrop-blur-2xl p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-white/60 transform transition-all hover:scale-105 hover:shadow-[0_15px_50px_rgba(0,0,0,0.6)] hover:bg-white/90 duration-500">
-          <Image
-            src="/assets/logo_transparent.png"
-            alt="Prism Logo"
-            width={160}
-            height={160}
-            className="object-contain drop-shadow-sm"
-          />
-        </div>
-
-        {/* Eyebrow with sleek glassmorphism and glow */}
-        <div className="mb-8 relative inline-flex group cursor-default">
-          <div className="absolute transition-all duration-1000 opacity-50 -inset-px bg-gradient-to-r from-brand-accent via-orange-500 to-brand-accent rounded-full blur-md group-hover:opacity-80 group-hover:-inset-1 animate-pulse"></div>
-          <span className="relative inline-flex items-center justify-center text-xs font-bold uppercase tracking-[0.2em] text-white bg-black/70 backdrop-blur-xl rounded-full px-6 py-2.5 border border-white/10">
-            <span className="text-brand-accent mr-2">✦</span>
-            Verified Vendors · Seamless Connection
-            <span className="text-brand-accent ml-2">✦</span>
+    <section className="bg-hero-radial relative overflow-hidden px-4 py-20 sm:py-28">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+        {/* Left — copy */}
+        <div className="text-center lg:text-left">
+          <span className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-card px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-brand-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
+            Bulk materials · Best prices · Fast supply
           </span>
-        </div>
 
-        {/* Headline with Smooth 3D Gradient Effect */}
-        <h1 className="text-6xl sm:text-7xl lg:text-8xl font-extrabold leading-[1.05] tracking-tight mb-8 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-          <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-100 to-gray-400">
-            Procure Building<br />
-            Materials in
-          </span>{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ff8c42] via-brand-accent to-[#cc5200]">
-            Bulk
-          </span>
-        </h1>
+          <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-brand-text sm:text-5xl lg:text-6xl">
+            Stop overpaying for{" "}
+            <span className="text-brand-accent">building materials.</span>
+          </h1>
 
-        {/* Subheadline - Improved legibility */}
-        <p className="mt-2 text-xl sm:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed font-normal drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-          The ultimate platform connecting builders to verified vendors. <br className="hidden sm:block" />
-          Simplify your bulk procurement process efficiently.
-        </p>
-
-        {/* CTAs */}
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 w-full sm:w-auto">
-          <button
-            onClick={onLoginClick}
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center rounded-2xl px-10 py-4 text-lg font-bold text-white bg-brand-accent overflow-hidden transition-all shadow-[0_0_30px_rgba(230,90,30,0.3)] hover:shadow-[0_0_50px_rgba(230,90,30,0.5)] hover:-translate-y-1"
-          >
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <span className="relative">Get Started Free</span>
-          </button>
-          <a
-            href="#how-it-works"
-            className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl px-10 py-4 text-lg font-bold border border-white/20 text-white bg-white/5 backdrop-blur-md hover:bg-white/10 hover:border-white/40 transition-all shadow-xl hover:-translate-y-1"
-          >
-            See how it works
-          </a>
-        </div>
-
-        {/* Social proof hint */}
-        <div className="mt-16 flex items-center justify-center gap-4 opacity-80">
-          <div className="h-px w-12 bg-gradient-to-r from-transparent to-white/30"></div>
-          <p className="text-sm sm:text-base text-gray-300 font-medium tracking-widest uppercase">
-            Trusted across India
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-brand-muted lg:mx-0">
+            BuildCityBulk gets you competitive bulk quotes from verified
+            suppliers and delivers straight to your site — fast. Lower costs on
+            every order, more margin on every project.
           </p>
-          <div className="h-px w-12 bg-gradient-to-l from-transparent to-white/30"></div>
+
+          <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+            <button
+              onClick={onLoginClick}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-accent px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-brand-accent/20 transition-all hover:-translate-y-0.5 hover:bg-brand-accent-h sm:w-auto"
+            >
+              Get bulk quotes
+            </button>
+            <a
+              href="#how-it-works"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-brand-border bg-brand-card px-8 py-3.5 text-base font-bold text-brand-text transition-colors hover:border-brand-accent hover:text-brand-accent sm:w-auto"
+            >
+              See how it works
+            </a>
+          </div>
+
+          <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:justify-start">
+            {PROOF_POINTS.map((point) => (
+              <li
+                key={point}
+                className="flex items-center gap-2 text-sm font-medium text-brand-muted"
+              >
+                <svg
+                  className="h-4 w-4 shrink-0 text-brand-accent"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.5 12.75l6 6 9-13.5"
+                  />
+                </svg>
+                {point}
+              </li>
+            ))}
+          </ul>
         </div>
+
+        {/* Right — "suppliers compete, you save" quote card */}
+        <QuoteCard />
       </div>
     </section>
+  );
+}
+
+/**
+ * Sales visual: a sample requirement with competing supplier quotes and the
+ * lowest price highlighted — shows the core value (competition drives your
+ * cost down) at a glance.
+ */
+function QuoteCard() {
+  const quotes = [
+    { name: "Supplier A", price: "₹385", best: false },
+    { name: "Supplier B", price: "₹372", best: false },
+    { name: "Supplier C", price: "₹358", best: true },
+  ];
+
+  return (
+    <div className="relative mx-auto w-full max-w-md">
+      <div className="rounded-3xl border border-brand-border bg-brand-card p-6 shadow-[0_24px_60px_-20px_rgba(45,18,8,0.35)] sm:p-8">
+        {/* requirement header */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand-border bg-white p-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+              Your requirement
+            </p>
+            <p className="mt-0.5 text-sm font-bold text-brand-text">
+              Cement · OPC 53 · 500 bags
+            </p>
+          </div>
+          <span className="rounded-full bg-brand-accent-soft px-3 py-1 text-xs font-semibold text-brand-accent">
+            3 quotes
+          </span>
+        </div>
+
+        {/* competing quotes */}
+        <ul className="mt-4 flex flex-col gap-2.5">
+          {quotes.map((q) => (
+            <li
+              key={q.name}
+              className={`flex items-center justify-between rounded-xl border p-3.5 ${
+                q.best
+                  ? "border-brand-accent bg-brand-accent/5"
+                  : "border-brand-border bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm font-medium text-brand-text">{q.name}</span>
+                {q.best && (
+                  <span className="rounded-full bg-brand-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Best price
+                  </span>
+                )}
+              </div>
+              <span
+                className={`text-sm font-bold ${
+                  q.best ? "text-brand-accent" : "text-brand-muted"
+                }`}
+              >
+                {q.price}
+                <span className="text-xs font-normal">/bag</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* delivery line */}
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-brand-bg px-4 py-3 text-sm font-medium text-brand-text">
+          <svg className="h-5 w-5 shrink-0 text-brand-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+          </svg>
+          Lowest bulk price, delivered to your site fast.
+        </div>
+      </div>
+
+      {/* floating savings chip */}
+      <div className="absolute -right-3 -top-3 flex items-center gap-1.5 rounded-full bg-brand-text px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+        </svg>
+        You save more
+      </div>
+    </div>
   );
 }

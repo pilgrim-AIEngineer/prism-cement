@@ -7,6 +7,8 @@ import { MaterialCarouselsSection } from "./MaterialCarouselsSection";
 import { HowItWorksSection } from "./HowItWorksSection";
 import { AudienceSection } from "./AudienceSection";
 import { TrustSection } from "./TrustSection";
+import { FaqSection } from "./FaqSection";
+import { CtaSection } from "./CtaSection";
 import { Footer } from "./Footer";
 import { LoginModal } from "./LoginModal";
 import type { MaterialCarousel } from "@/lib/landing/carousels";
@@ -23,8 +25,10 @@ export function LandingShell({ carousels }: { carousels: MaterialCarousel[] }) {
         <HeroSection onLoginClick={open} />
         <MaterialCarouselsSection carousels={carousels} />
         <HowItWorksSection />
-        <AudienceSection />
+        <AudienceSection onLoginClick={open} />
         <TrustSection />
+        <FaqSection />
+        <CtaSection onLoginClick={open} />
       </main>
       <Footer />
       <LoginModal isOpen={isModalOpen} onClose={close} />

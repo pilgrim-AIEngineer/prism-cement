@@ -1,28 +1,28 @@
 const BADGES = [
   {
-    label: "Verified Vendors",
-    description: "Every vendor is manually reviewed and approved per category before they can bid.",
+    label: "Lower prices",
+    description: "Bulk volume plus suppliers competing for your order drives the price down on every line item.",
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
       </svg>
     ),
   },
   {
-    label: "Double-Blind Privacy",
-    description: "Builders and vendors never see each other's identity. Only the admin bridges the gap.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Admin-Brokered Speed",
-    description: "No lengthy negotiations. Admin reviews bids and connects the right parties efficiently.",
+    label: "Faster supply",
+    description: "Skip the calls and chasing. Materials are sourced and delivered to your site on your timeline.",
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Verified quality",
+    description: "Every supplier is vetted and every brand is genuine — competitive pricing without cutting corners.",
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
       </svg>
     ),
   },
@@ -30,23 +30,26 @@ const BADGES = [
 
 export function TrustSection() {
   return (
-    <section className="bg-brand-card py-20 px-4">
+    <section id="why-us" className="bg-brand-footer py-24 px-4">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold text-brand-text">
-          Verified. Anonymous. Efficient.
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">
+          Why BuildCityBulk
+        </span>
+        <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-white">
+          Cheaper. Faster. Reliable.
         </h2>
-        <p className="mt-3 text-brand-muted text-base sm:text-lg max-w-xl mx-auto">
-          BuildCityBulk is built on three non-negotiable principles.
+        <p className="mt-3 text-base sm:text-lg max-w-xl mx-auto text-white/60">
+          The fastest, most cost-effective way to source building materials in bulk.
         </p>
 
-        <div className="mt-14 flex flex-wrap justify-center gap-10">
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
           {BADGES.map((badge) => (
-            <div key={badge.label} className="flex flex-col items-center gap-3 max-w-[200px]">
-              <div className="w-16 h-16 rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent">
+            <div key={badge.label} className="flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-2xl bg-brand-accent/15 border border-brand-accent/30 flex items-center justify-center text-brand-accent">
                 {badge.icon}
               </div>
-              <p className="text-sm font-semibold text-brand-text">{badge.label}</p>
-              <p className="text-xs text-brand-muted leading-relaxed text-center">
+              <p className="text-base font-semibold text-white">{badge.label}</p>
+              <p className="text-sm text-white/55 leading-relaxed text-center max-w-[220px]">
                 {badge.description}
               </p>
             </div>
