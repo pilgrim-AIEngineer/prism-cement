@@ -157,31 +157,51 @@ export function OnboardingForm() {
     });
   }
 
+  /* ── Step 1 — role selection ────────────────────────────────────────── */
+
   if (step === "role") {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">I am a…</p>
+        <p className="text-sm font-medium text-zinc-500">I am a…</p>
         {ROLE_OPTIONS.map((option) => (
           <button
             key={option.role}
             type="button"
             onClick={() => handleSelectRole(option.role)}
-            className="flex flex-col gap-1 rounded-md border border-zinc-300 px-4 py-3 text-left transition-colors hover:border-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-900"
+            className="group flex items-center gap-4 rounded-lg border border-zinc-200 px-4 py-4 text-left transition-colors hover:border-brand-accent hover:bg-brand-bg/40"
           >
-            <span className="font-medium">{option.title}</span>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">{option.description}</span>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-accent-soft text-brand-accent">
+              {option.role === "BUILDER" ? (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 20h20M5 20V8l7-5 7 5v12M9 20v-6h6v6" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1">
+              <span className="block text-sm font-semibold text-zinc-900">{option.title}</span>
+              <span className="block text-[13px] leading-snug text-zinc-500">{option.description}</span>
+            </div>
+            <svg className="h-4 w-4 shrink-0 text-zinc-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         ))}
       </div>
     );
   }
 
+  /* ── Step 2 — profile form ──────────────────────────────────────────── */
+
   const roleLabel = ROLE_OPTIONS.find((option) => option.role === role)?.title ?? "";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Setting up a <span className="font-medium text-zinc-900 dark:text-zinc-100">{roleLabel}</span> account.
+      <p className="text-sm text-zinc-500">
+        Setting up a <span className="font-medium text-zinc-900">{roleLabel}</span> account.
       </p>
       {formError && <Banner tone="error" title={formError} />}
       <TextField
@@ -241,15 +261,15 @@ export function OnboardingForm() {
         onChange={(event) => updateField("city", event.target.value)}
         error={fieldErrors.city}
       />
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 pt-2">
         <button
           type="button"
           onClick={handleBack}
-          className="text-sm text-zinc-600 underline-offset-2 hover:underline dark:text-zinc-400"
+          className="text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900"
         >
-          Back
+          ← Back
         </button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" variant="accent" disabled={isPending}>
           {isPending ? "Creating account…" : "Finish setup"}
         </Button>
       </div>
